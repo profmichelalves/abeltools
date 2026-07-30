@@ -814,10 +814,19 @@ function renderGrid(){
 
             ${[
               "INTEGER",
+              "INT",
               "REAL",
+              "FLOAT",
+              "DOUBLE",
               "TEXT",
-              "BLOB",
-              "NUMERIC"
+              "VARCHAR",
+              "CHAR",
+              "NUMERIC",
+              "DECIMAL",
+              "BOOLEAN",
+              "DATE",
+              "DATETIME",
+              "BLOB"
             ].map(t=>`
 
               <option
@@ -1329,7 +1338,7 @@ function formatSQL(sql){
     )
 
     .replace(
-      /INTEGER|REAL|TEXT|BLOB|NUMERIC/g,
+      /INTEGER|INT|REAL|FLOAT|DOUBLE|TEXT|VARCHAR|CHAR|NUMERIC|DECIMAL|BOOLEAN|DATE|DATETIME|BLOB/g,
       '<span class="sql-type">$&</span>'
     )
 
