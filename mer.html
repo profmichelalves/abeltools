@@ -424,6 +424,10 @@ button{
       Baixar
     </button>
 
+    <button onclick="copySQL()">
+      Copiar
+    </button>
+
     <button onclick="closeSQL()">
       Fechar
     </button>
@@ -1350,6 +1354,14 @@ function formatSQL(sql){
       /PRIMARY KEY|NOT NULL|AUTO_INCREMENT|UNIQUE|FOREIGN KEY|REFERENCES/g,
       '<span class="sql-constraint">$&</span>'
     );
+}
+
+function copySQL(){
+  navigator.clipboard.writeText(lastSQL).then(()=>{
+    showModal("SQL copiado para a área de transferência");
+  }).catch(()=>{
+    showModal("Erro ao copiar");
+  });
 }
 
 function closeSQL(){
