@@ -531,7 +531,7 @@ function createTable(){
       {
         id:Date.now()+1,
         name:"id",
-        type:"INT",
+        type:"INTEGER",
 
         pk:true,
         fk:false,
@@ -813,14 +813,11 @@ function renderGrid(){
             >
 
             ${[
-              "INT",
-              "BIGINT",
-              "VARCHAR(255)",
+              "INTEGER",
+              "REAL",
               "TEXT",
-              "DATE",
-              "DATETIME",
-              "BOOLEAN",
-              "DECIMAL(10,2)"
+              "BLOB",
+              "NUMERIC"
             ].map(t=>`
 
               <option
@@ -1268,7 +1265,7 @@ function showSQL(){
         line += " NOT NULL";
 
       if(field.ai)
-        line += " AUTO_INCREMENT";
+        line += " AUTOINCREMENT";
 
       if(field.uq)
         line += " UNIQUE";
@@ -1332,7 +1329,7 @@ function formatSQL(sql){
     )
 
     .replace(
-      /INT|BIGINT|VARCHAR\(255\)|TEXT|DATE|DATETIME|BOOLEAN|DECIMAL\(10,2\)/g,
+      /INTEGER|REAL|TEXT|BLOB|NUMERIC/g,
       '<span class="sql-type">$&</span>'
     )
 
