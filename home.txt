@@ -1,0 +1,12 @@
+#CORPO
+Sobre este ambiente 
+
+Este ambiente foi desenvolvido para apoiar o aprendizado dos alunos do Curso Técnico em Informática, oferecendo ferramentas práticas voltadas exclusivamente ao estudo de banco de dados. A proposta central é proporcionar um espaço acessível e organizado, no qual os estudantes possam explorar, testar e consolidar seus conhecimentos por meio da prática.
+Aqui é possível praticar comandos SQL, compreendendo na prática como funcionam operações como consulta, inserção, atualização e exclusão de dados, além de desenvolver maior familiaridade com a estrutura e manipulação de bancos de dados relacionais. Paralelamente, o ambiente permite construir modelos de banco de dados por meio do MER (Modelo Entidade-Relacionamento), possibilitando ao aluno representar de forma visual e estruturada entidades, atributos e relacionamentos, fortalecendo a compreensão conceitual antes da implementação.
+A proposta pedagógica deste espaço está fundamentada na aprendizagem ativa, na qual o aluno assume um papel protagonista em seu processo de formação. Ao interagir diretamente com as ferramentas, o estudante desenvolve não apenas habilidades técnicas, mas também autonomia, organização do pensamento e capacidade de resolução de problemas.
+Além disso, o ambiente valoriza o erro como parte essencial do processo de aprendizagem. Cada tentativa, ajuste e correção contribui para a construção do conhecimento, permitindo que o aluno avance de forma progressiva e significativa. Dessa forma, busca-se promover um aprendizado mais sólido, reflexivo e alinhado às demandas do curso técnico em informática.
+
+#RODAPÉ
+© 2026 Ambiente de Prática em Banco de Dados | Curso Técnico em Informática
+Este ambiente foi desenvolvido com finalidade educacional, com o objetivo de apoiar a aprendizagem prática de comandos SQL e modelagem de banco de dados (MER).
+Utilize as ferramentas de forma responsável e aproveite este espaço para experimentar, aprender e evoluir continuamente.

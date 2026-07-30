@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+
+<title>SQLite Web Manager</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+
+<link rel="stylesheet"
+href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/sql/sql.min.js"></script>
+
+<style>
+
+body{
+margin:0;
+font-family:Arial;
+height:100vh;
+display:flex;
+background:#F4F7FB;
+}
+
+/* SIDEBAR */
+
+#sidebar{
+width:300px;
+background:#FFFFFF;
+border-right:3px solid #2E3192;
+padding:10px;
+overflow:auto;
+}
+
+#sidebar h3{
+color:#2E3192;
+margin-top:0;
+}
+
+/* árvore */
+
+.tree ul{
+list-style:none;
+padding-left:18px;
+margin:2px 0;
+}
+
+.tree li{
+margin:3px 0;
+}
+
+/* itens */
+
+.db{
+font-weight:bold;
+color:#2E3192;
+font-size:15px;
+}
+
+.table{
+color:#00AEEF;
+font-weight:bold;
+}
+
+.column{
+color:#444;
+font-size:13px;
+}
+
+.icon{
+margin-right:6px;
+}
+
+/* ICONES DE METADADOS */
+
+.pk{
+color:#FCEE21;
+font-size:14px;
+margin-left:4px;
+cursor:help;
+}
+
+.fk{
+color:#999;
+font-size:14px;
+margin-left:4px;
+cursor:help;
+}
+
+.notnull{
+color:#e67e22;
+margin-left:4px;
+cursor:help;
+}
+
+.numeric{
+color:#2E3192;
+margin-left:4px;
+cursor:help;
+}
+
+/* MAIN */
+
+#main{
+flex:1;
+display:flex;
+flex-direction:column;
+}
+
+/* TOOLBAR */
+
+#toolbar{
+background:#2E3192;
+color:white;
+padding:8px;
+}
+
+button{
+background:#00AEEF;
+border:none;
+color:white;
+padding:6px 12px;
+margin-right:6px;
+border-radius:4px;
+cursor:pointer;
+font-weight:bold;
+}
+
+button:hover{
+background:#0095cc;
+}
+
+/* EDITOR */
+
+.CodeMirror{
+height:200px;
+border-bottom:3px solid #2E3192;
+}
+
+/* RESULT GRID */
+
+#result{
+flex:1;
+overflow:auto;
+padding:10px;
+background:white;
+}
+
+table{
+border-collapse:collapse;
+width:100%;
+font-size:14px;
+}
+
+th{
+background:#2E3192;
+color:white;
+padding:7px;
+}
+
+td{
+padding:6px;
+border:1px solid #ddd;
+}
+
+tr:nth-child(even){
+background:#f3f6fb;
+}
+
+td.number{
+text-align:right;
+color:#2E3192;
+font-weight:bold;
+}
+
+td.text{
+text-align:left;
+}
+
+td.null{
+color:#aaa;
+font-style:italic;
+}
+
+/* MODAL */
+
+#modal{
+position:fixed;
+top:0;
+left:0;
+right:0;
+bottom:0;
+background:rgba(0,0,0,0.5);
+display:none;
+align-items:center;
+justify-content:center;
+}
+
+#modalContent{
+background:white;
+padding:20px;
+border-radius:6px;
+width:300px;
+border-top:6px solid #FCEE21;
+}
+
+#modalContent h3{
+margin-top:0;
+color:#2E3192;
+}
+
+#modalContent input{
+width:100%;
+padding:7px;
+margin:10px 0;
+border:1px solid #ccc;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div id="sidebar">
+
+<h3>🗄 Bancos</h3>
+<div id="tree" class="tree"></div>
+
+</div>
+
+<div id="main">
+
+<div id="toolbar">
+
+<button onclick="abrirModal()">Novo Banco</button>
+<button onclick="abrirBanco()">Abrir</button>
+<button onclick="salvarBanco()">Salvar</button>
+<button onclick="executarSQL()">Executar</button>
+
+<input type="file" id="fileInput" style="display:none"/>
+
+</div>
+
+<textarea id="editor"></textarea>
+
+<div id="result"></div>
+
+</div>
+
+<div id="modal">
+
+<div id="modalContent">
+
+<h3>Novo Banco</h3>
+
+<input id="dbName" placeholder="nome do banco">
+
+<button onclick="criarBanco()">Criar</button>
+<button onclick="fecharModal()">Cancelar</button>
+
+</div>
+
+</div>
+
+<script>
+
+let SQL
+let db
+let editor
+
+async function iniciar(){
+
+SQL = await initSqlJs({
+locateFile:file=>"https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/"+file
+})
+
+db = new SQL.Database()
+
+editor = CodeMirror.fromTextArea(
+document.getElementById("editor"),
+{
+mode:"text/x-sql",
+lineNumbers:true
+})
+
+atualizarArvore()
+
+}
+
+/* MODAL */
+
+function abrirModal(){
+document.getElementById("modal").style.display="flex"
+}
+
+function fecharModal(){
+document.getElementById("modal").style.display="none"
+}
+
+/* CRIAR BANCO */
+
+function criarBanco(){
+
+let nome=document.getElementById("dbName").value
+
+if(!nome)return
+
+db.run("ATTACH DATABASE '"+nome+".db' AS "+nome)
+
+fecharModal()
+
+atualizarArvore()
+
+}
+
+/* EXECUTAR SQL */
+
+function executarSQL(){
+
+let sql=editor.getValue()
+
+try{
+
+let res=db.exec(sql)
+
+mostrarResultado(res)
+
+atualizarArvore()
+
+}catch(e){
+
+document.getElementById("result").innerHTML="<pre style='color:red'>"+e+"</pre>"
+
+}
+
+}
+
+/* RESULTADO */
+
+function mostrarResultado(res){
+
+if(!res.length){
+
+document.getElementById("result").innerHTML="Sem resultado"
+return
+
+}
+
+let cols=res[0].columns
+let rows=res[0].values
+
+let html="<table><tr>"
+
+cols.forEach(c=>html+="<th>"+c+"</th>")
+
+html+="</tr>"
+
+rows.forEach(r=>{
+
+html+="<tr>"
+
+r.forEach(v=>{
+
+let cls="text"
+
+if(v===null)cls="null"
+else if(typeof v==="number")cls="number"
+
+html+="<td class='"+cls+"'>"+(v??"NULL")+"</td>"
+
+})
+
+html+="</tr>"
+
+})
+
+html+="</table>"
+
+document.getElementById("result").innerHTML=html
+
+}
+
+/* ÁRVORE */
+
+function atualizarArvore(){
+
+let html="<ul>"
+
+let dbs=db.exec("PRAGMA database_list")
+
+dbs[0].values.forEach(d=>{
+
+let nome=d[1]
+
+html+="<li class='db'><span class='icon'>🗄</span>"+nome
+
+let tables=db.exec("SELECT name FROM "+nome+".sqlite_master WHERE type='table'")
+
+if(tables.length){
+
+html+="<ul>"
+
+tables[0].values.forEach(t=>{
+
+let table=t[0]
+
+html+="<li class='table'><span class='icon'>📋</span>"+table
+
+let cols=db.exec("PRAGMA "+nome+".table_info("+table+")")
+
+let fkList=db.exec("PRAGMA "+nome+".foreign_key_list("+table+")")
+
+if(cols.length){
+
+html+="<ul>"
+
+cols[0].values.forEach(c=>{
+
+let icons=""
+
+/* PRIMARY KEY */
+
+if(c[5]==1)
+icons+="<span class='pk' title='Primary Key'>🔑</span>"
+
+/* NOT NULL */
+
+if(c[3]==1)
+icons+="<span class='notnull' title='NOT NULL'>⚠️</span>"
+
+/* NUMERIC */
+
+let type=c[2].toUpperCase()
+
+if(type.includes("INT")||type.includes("REAL")||type.includes("NUM"))
+icons+="<span class='numeric' title='Numeric Field'>🔢</span>"
+
+/* FOREIGN KEY */
+
+if(fkList.length){
+
+fkList[0].values.forEach(f=>{
+
+if(f[3]==c[1])
+icons+="<span class='fk' title='Foreign Key'>🔑</span>"
+
+})
+
+}
+
+html+="<li class='column'><span class='icon'>📄</span>"+c[1]+" ("+c[2]+") "+icons+"</li>"
+
+})
+
+html+="</ul>"
+
+}
+
+html+="</li>"
+
+})
+
+html+="</ul>"
+
+}
+
+html+="</li>"
+
+})
+
+html+="</ul>"
+
+document.getElementById("tree").innerHTML=html
+
+}
+
+/* SALVAR */
+
+function salvarBanco(){
+
+let data=db.export()
+
+let blob=new Blob([data])
+
+let url=URL.createObjectURL(blob)
+
+let a=document.createElement("a")
+
+a.href=url
+a.download="database.db"
+
+a.click()
+
+}
+
+/* ABRIR */
+
+function abrirBanco(){
+
+document.getElementById("fileInput").click()
+
+}
+
+document.getElementById("fileInput")
+.addEventListener("change",function(e){
+
+let file=e.target.files[0]
+
+let reader=new FileReader()
+
+reader.onload=function(){
+
+let arr=new Uint8Array(reader.result)
+
+db=new SQL.Database(arr)
+
+atualizarArvore()
+
+}
+
+reader.readAsArrayBuffer(file)
+
+})
+
+iniciar()
+
+</script>
+
+</body>
+</html>

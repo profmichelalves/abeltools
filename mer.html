@@ -1,0 +1,1823 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+<meta charset="UTF-8">
+<title>Mini Workbench V7.3</title>
+
+<style>
+
+body{
+  margin:0;
+  font-family:Arial;
+  background:#1e1e2f;
+  color:white;
+}
+
+/* ===== TOOLBAR ===== */
+
+#toolbar{
+  background:linear-gradient(
+    to bottom,
+    #25283a,
+    #1b1d2b
+  );
+
+  padding:17px 10px;
+
+  display:ruby-text;
+  align-items:center;
+  gap:8px;
+
+  border-bottom:1px solid #3c3f55;
+}
+
+
+
+
+/* ===== BOTÕES ===== */
+
+#toolbar button{
+
+  height:32px;
+
+  padding:0 14px;
+
+  border:1px solid #4a4d66;
+
+  border-radius:3px;
+
+  background:linear-gradient(
+    to bottom,
+    #2f3248,
+    #23263a
+  );
+
+  color:white;
+
+  font-size:13px;
+  font-weight:500;
+
+  display:flex;
+  align-items:center;
+  gap:6px;
+
+  transition:.15s;
+}
+
+#toolbar button:hover{
+
+  background:linear-gradient(
+    to bottom,
+    #3a3e5a,
+    #2c3046
+  );
+
+  border-color:#6a6f92;
+}
+
+#toolbar button:active{
+
+  background:linear-gradient(
+    to bottom,
+    #202433,
+    #171a27
+  );
+}
+
+/* ===== BOTÃO PRINCIPAL ===== */
+
+#toolbar button:first-child{
+
+  background:linear-gradient(
+    to bottom,
+    #3f79d8,
+    #2c5fb4
+  );
+
+  border-color:#5d90e3;
+}
+
+#toolbar button:first-child:hover{
+
+  background:linear-gradient(
+    to bottom,
+    #4b88ed,
+    #346bc5
+  );
+}
+
+#toolbar input[type="file"]{
+
+    height: 34px;
+    color: white;
+    font-size: 14px;
+    border: 1px solid #4a4d66;
+    border-radius: 3px;
+    background: #23263a;
+    padding: 4px;
+}
+
+
+
+
+#canvasContainer{
+  height:65vh;
+  overflow:auto;
+  background:#2a2a3a;
+}
+
+#canvasWorkspace{
+  position:relative;
+  width:4000px;
+  height:4000px;
+  transform-origin:0 0;
+}
+
+#svg{
+  position:absolute;
+  top:0;
+  left:0;
+  width:4000px;
+  height:4000px;
+  pointer-events:none;
+}
+
+#grid{
+  height:35vh;
+  background:#1a1a26;
+  padding:10px;
+  border-top:2px solid #444;
+  overflow:auto;
+}
+
+#gridWrapper{
+  display:flex;
+  gap:10px;
+}
+
+#gridContent{
+  width:65%;
+}
+
+#relationContent{
+  width:35%;
+  border-left:1px solid #444;
+  padding-left:10px;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+}
+
+td,th{
+  border:1px solid #555;
+  padding:4px;
+}
+
+input,select{
+  width:100%;
+  background:#2c2c3c;
+  color:white;
+  border:none;
+}
+
+button{
+  cursor:pointer;
+}
+
+.table{
+  position:absolute;
+  width:250px;
+  background:#3a3a4f;
+  border-radius:6px;
+  border:2px solid transparent;
+}
+
+.table.selected{
+  border-color:#4cafef;
+}
+
+.table h3{
+  margin:0;
+  padding:6px;
+  background:#4cafef;
+  text-align:center;
+  cursor:move;
+}
+
+.field{
+  padding:6px;
+  font-size:12px;
+  border-bottom:1px solid #555;
+  display:flex;
+  gap:6px;
+}
+
+.icon-default{
+  width:10px;
+  height:10px;
+  border:2px solid #4cafef;
+  border-radius:50%;
+  box-sizing:border-box;
+  flex-shrink:0;
+}
+
+.icon-pk{
+  width:10px;
+  height:10px;
+  background:gold;
+  border-radius:50%;
+  flex-shrink:0;
+}
+
+.icon-fk{
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  background:purple;
+  flex-shrink:0;
+}
+
+.small{
+  font-size:10px;
+  opacity:.8;
+}
+
+.selected-row{
+  background:#304a75;
+}
+
+#modal,
+#sqlModal,
+#cardinalityModal{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,.7);
+  display:none;
+  align-items:center;
+  justify-content:center;
+}
+
+.box{
+  background:#2c2c3c;
+  padding:20px;
+  border-radius:8px;
+  width:600px;
+  max-height:80vh;
+  overflow:auto;
+}
+
+.sql-key{
+  color:#4fc3f7;
+}
+
+.sql-type{
+  color:#81c784;
+}
+
+.sql-constraint{
+  color:#ffb74d;
+}
+
+.cardinality-label{
+  fill:white;
+  font-size:13px;
+  font-weight:bold;
+
+  paint-order:stroke;
+  stroke:#1e1e2f;
+  stroke-width:4px;
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="toolbar">
+
+  <button onclick="createTable()">
+    ➕ Tabela
+  </button>
+
+  <button onclick="startRelation()">
+    🔗 Relacionar
+  </button>
+
+  <button onclick="showSQL()">
+    📄 Exportar SQL
+  </button>
+
+  <button onclick="exportJSON()">
+    💾 Exportar Modelo
+  </button>
+  
+  <button onclick="zoomOut()">-</button>
+
+  <span id="zoomLabel">
+  100%
+  </span>
+
+  <button onclick="zoomIn()">+</button>
+
+  <input
+    type="file"
+    onchange="importJSON(event)"
+  >
+
+</div>
+
+<div id="canvasContainer">
+
+  <div id="canvasWorkspace">
+
+    <svg id="svg"></svg>
+
+  </div>
+
+</div>
+
+<div id="grid">
+
+  <h3>Editor</h3>
+
+  <div id="gridWrapper">
+
+    <div id="gridContent">
+      Selecione uma tabela
+    </div>
+
+    <div id="relationContent">
+      Selecione um campo
+    </div>
+
+  </div>
+
+</div>
+
+<!-- MODAL -->
+
+<div id="modal">
+
+  <div class="box">
+
+    <p id="modalText"></p>
+
+    <button onclick="closeModal()">
+      OK
+    </button>
+
+  </div>
+
+</div>
+
+<!-- MODAL CARDINALIDADE -->
+
+<div id="cardinalityModal">
+
+  <div class="box">
+
+    <h3>Cardinalidade</h3>
+
+    <select id="cardinalitySelect">
+
+      <option value="1:1">
+        1 : 1
+      </option>
+
+      <option value="1:N" selected>
+        1 : N
+      </option>
+
+      <option value="N:N">
+        N : N
+      </option>
+
+    </select>
+
+    <br><br>
+
+    <button onclick="confirmCardinality()">
+      Confirmar
+    </button>
+
+  </div>
+
+</div>
+
+<!-- SQL -->
+
+<div id="sqlModal">
+
+  <div class="box">
+
+    <h3>SQL Gerado</h3>
+
+    <pre id="sqlContent"></pre>
+
+    <button onclick="downloadSQL()">
+      Baixar
+    </button>
+
+    <button onclick="closeSQL()">
+      Fechar
+    </button>
+
+  </div>
+
+</div>
+
+<script>
+
+let tables = [];
+let relations = [];
+
+let selectedTable = null;
+let selectedFieldId = null;
+
+let relationMode = false;
+let relationStart = null;
+
+let relationCardinality = "1:N";
+
+let lastSQL = "";
+
+let zoom = 1;
+
+
+
+
+
+function getTableHeight(table){
+
+  return (
+    35 +                    // cabeçalho
+    (table.fields.length * 30) +
+    30                      // botão excluir
+  );
+
+}
+
+
+/* ==========================
+   ZOOM
+========================== */
+function applyZoom(){
+
+  document
+    .getElementById("canvasWorkspace")
+    .style.transform =
+      `scale(${zoom})`;
+
+  document
+    .getElementById("zoomLabel")
+    .innerText =
+      Math.round(zoom*100)+"%";
+}
+
+function zoomIn(){
+
+  zoom += 0.1;
+
+  if(zoom>3)
+    zoom=3;
+
+  applyZoom();
+}
+
+function zoomOut(){
+
+  zoom -= 0.1;
+
+  if(zoom<0.3)
+    zoom=0.3;
+
+  applyZoom();
+}
+
+/* ==========================
+   MODAIS
+========================== */
+
+function showModal(msg){
+  document.getElementById("modalText").innerText = msg;
+  document.getElementById("modal").style.display="flex";
+}
+
+function closeModal(){
+  document.getElementById("modal").style.display="none";
+}
+
+/* ==========================
+   TABELAS
+========================== */
+
+function createTable(){
+
+  tables.push({
+    id:Date.now(),
+
+    name:"tabela_"+tables.length,
+
+    x:50 + (tables.length * 20),
+    y:50 + (tables.length * 50),
+
+    fields:[
+      {
+        id:Date.now()+1,
+        name:"id",
+        type:"INT",
+
+        pk:true,
+        fk:false,
+
+        nn:true,
+        ai:true,
+        uq:true
+      }
+    ]
+  });
+
+  render();
+}
+
+/* ==========================
+   RENDER
+========================== */
+
+function render(){
+
+  const canvas =
+     document.getElementById("canvasWorkspace");
+
+  canvas
+    .querySelectorAll(".table")
+    .forEach(e=>e.remove());
+
+  tables.forEach(table=>{
+
+    const el =
+      document.createElement("div");
+
+    el.className="table";
+
+    el.style.left=table.x+"px";
+    el.style.top=table.y+"px";
+
+    if(selectedTable===table)
+      el.classList.add("selected");
+
+    el.innerHTML=`
+
+      <h3>${table.name}</h3>
+
+      ${table.fields.map(f=>`
+
+          <div
+            class="field"
+            data-id="${f.id}"
+          >
+
+            ${
+              f.pk
+                ? '<div class="icon-pk"></div>'
+                : (
+                    f.fk
+                      ? '<div class="icon-fk"></div>'
+                      : '<div class="icon-default"></div>'
+                  )
+            }
+
+            ${f.name}
+            (${f.type})
+
+            <span class="small">
+
+              ${f.nn ? 'NN ' : ''}
+
+              ${f.ai ? 'AI ' : ''}
+
+              ${f.uq ? 'UQ' : ''}
+
+            </span>
+
+          </div>
+
+        `).join("")}
+
+      <button
+        onclick="deleteTable(${table.id})"
+      >
+        Excluir
+      </button>
+
+    `;
+
+    makeDraggable(
+      el.querySelector("h3"),
+      el,
+      table
+    );
+
+    el.onclick=()=>{
+
+      selectedTable=table;
+
+      renderGrid();
+
+      render();
+    };
+
+    canvas.appendChild(el);
+
+  });
+
+  drawRelations();
+}
+
+/* ==========================
+   DRAG
+========================== */
+
+function makeDraggable(
+  handle,
+  el,
+  table
+){
+
+  let dragging = false;
+  let startX = 0;
+  let startY = 0;
+
+  function start(clientX, clientY){
+
+    dragging = true;
+
+    startX = clientX - table.x;
+    startY = clientY - table.y;
+  }
+
+  function move(clientX, clientY){
+
+    if(!dragging) return;
+
+    table.x = clientX - startX;
+    table.y = clientY - startY;
+
+    el.style.left = table.x + "px";
+    el.style.top  = table.y + "px";
+
+    drawRelations();
+  }
+
+  function end(){
+    dragging = false;
+  }
+
+  handle.addEventListener("mousedown",e=>{
+    start(e.clientX,e.clientY);
+  });
+
+  document.addEventListener("mousemove",e=>{
+    move(e.clientX,e.clientY);
+  });
+
+  document.addEventListener("mouseup",end);
+
+  handle.addEventListener("touchstart",e=>{
+
+    const t=e.touches[0];
+
+    start(
+      t.clientX,
+      t.clientY
+    );
+
+  });
+
+  document.addEventListener("touchmove",e=>{
+
+    const t=e.touches[0];
+
+    move(
+      t.clientX,
+      t.clientY
+    );
+
+  });
+
+  document.addEventListener(
+    "touchend",
+    end
+  );
+}
+
+/* ==========================
+   GRID EDITOR
+========================== */
+
+function renderGrid(){
+
+  if(!selectedTable)
+    return;
+
+  const g =
+    document.getElementById(
+      "gridContent"
+    );
+
+  g.innerHTML=`
+
+    Nome:
+
+    <input
+      value="${selectedTable.name}"
+      onchange="
+        selectedTable.name=this.value;
+        render();
+      "
+    >
+
+    <br><br>
+
+    <button onclick="addField()">
+      + Campo
+    </button>
+
+    <br><br>
+
+    <table>
+
+      <tr>
+        <th>Sel</th>
+        <th>Nome</th>
+        <th>Tipo</th>
+        <th>PK</th>
+        <th>FK</th>
+        <th>NN</th>
+        <th>AI</th>
+        <th>UQ</th>
+        <th>X</th>
+      </tr>
+
+      ${selectedTable.fields.map((f,i)=>`
+
+        <tr
+          class="${
+            selectedFieldId==f.id
+            ? 'selected-row'
+            : ''
+          }"
+        >
+
+          <td>
+
+            <button
+              onclick="selectField(${f.id})"
+            >
+              🔍
+            </button>
+
+          </td>
+
+          <td>
+
+            <input
+              value="${f.name}"
+              onchange="
+                updateField(
+                  ${i},
+                  'name',
+                  this.value
+                )
+              "
+            >
+
+          </td>
+
+          <td>
+
+            <select
+              onchange="
+                updateField(
+                  ${i},
+                  'type',
+                  this.value
+                )
+              "
+            >
+
+            ${[
+              "INT",
+              "BIGINT",
+              "VARCHAR(255)",
+              "TEXT",
+              "DATE",
+              "DATETIME",
+              "BOOLEAN",
+              "DECIMAL(10,2)"
+            ].map(t=>`
+
+              <option
+                ${
+                  f.type===t
+                  ? 'selected'
+                  : ''
+                }
+              >
+                ${t}
+              </option>
+
+            `).join("")}
+
+            </select>
+
+          </td>
+
+          <td>
+            <input
+              type="checkbox"
+              ${f.pk?'checked':''}
+              onchange="
+                setPK(
+                  ${i},
+                  this.checked
+                )
+              "
+            >
+          </td>
+
+          <td>
+            <input
+              type="checkbox"
+              ${f.fk?'checked':''}
+              onchange="
+                updateField(
+                  ${i},
+                  'fk',
+                  this.checked
+                )
+              "
+            >
+          </td>
+
+          <td>
+            <input
+              type="checkbox"
+              ${f.nn?'checked':''}
+              onchange="
+                updateField(
+                  ${i},
+                  'nn',
+                  this.checked
+                )
+              "
+            >
+          </td>
+
+          <td>
+            <input
+              type="checkbox"
+              ${f.ai?'checked':''}
+              onchange="
+                updateField(
+                  ${i},
+                  'ai',
+                  this.checked
+                )
+              "
+            >
+          </td>
+
+          <td>
+            <input
+              type="checkbox"
+              ${f.uq?'checked':''}
+              onchange="
+                updateField(
+                  ${i},
+                  'uq',
+                  this.checked
+                )
+              "
+            >
+          </td>
+
+          <td>
+            <button
+              onclick="
+                deleteField(${i})
+              "
+            >
+              X
+            </button>
+          </td>
+
+        </tr>
+
+      `).join("")}
+
+    </table>
+  `;
+}
+
+/* ==========================
+   CAMPOS
+========================== */
+
+function setPK(i,val){
+
+  selectedTable.fields[i].pk = val;
+
+  if(val)
+    selectedTable.fields[i].nn = true;
+
+  render();
+  renderGrid();
+}
+
+function addField(){
+
+  selectedTable.fields.push({
+
+    id:Date.now(),
+
+    name:"campo",
+
+    type:"INT",
+
+    pk:false,
+    fk:false,
+
+    nn:false,
+    ai:false,
+    uq:false
+
+  });
+
+  render();
+  renderGrid();
+}
+
+function updateField(i,k,v){
+
+  selectedTable.fields[i][k]=v;
+
+  render();
+  renderGrid();
+}
+
+function deleteField(i){
+
+  const fieldId =
+    selectedTable.fields[i].id;
+
+  relations =
+    relations.filter(r =>
+      r.from != fieldId &&
+      r.to != fieldId
+    );
+
+  selectedTable.fields.splice(i,1);
+
+  render();
+  renderGrid();
+
+  document.getElementById(
+    "relationContent"
+  ).innerHTML="Selecione um campo";
+}
+
+/* ==========================
+   RELATION GRID
+========================== */
+
+function selectField(fieldId){
+
+  selectedFieldId = fieldId;
+
+  renderGrid();
+
+  const relDiv =
+    document.getElementById(
+      "relationContent"
+    );
+
+  const rel =
+    relations.find(r =>
+      r.to == fieldId ||
+      r.from == fieldId
+    );
+
+  if(!rel){
+
+    relDiv.innerHTML = `
+      <h4>Relacionamento</h4>
+      Sem relacionamento
+    `;
+
+    return;
+  }
+
+  const fromField =
+    findField(rel.from);
+
+  const toField =
+    findField(rel.to);
+
+  const fromTable =
+    findTableByField(rel.from);
+
+  const toTable =
+    findTableByField(rel.to);
+
+  relDiv.innerHTML = `
+
+    <h4>Relacionamento</h4>
+
+    <b>Tabela FK</b><br>
+    ${toTable.name}.${toField.name}
+
+    <br><br>
+
+    <b>Tabela Referenciada</b><br>
+    ${fromTable.name}.${fromField.name}
+
+    <br><br>
+
+    <b>Cardinalidade</b><br>
+    ${rel.cardinality || "1:N"}
+
+    <br><br>
+
+    <button
+      onclick="
+        deleteRelation(
+          ${rel.from},
+          ${rel.to}
+        )
+      "
+    >
+      Excluir Relacionamento
+    </button>
+
+  `;
+}
+
+function deleteRelation(from,to){
+
+  relations =
+    relations.filter(r =>
+      !(r.from==from && r.to==to)
+    );
+
+  const field =
+    findField(to);
+
+  if(field)
+    field.fk=false;
+
+  render();
+  renderGrid();
+
+  document.getElementById(
+    "relationContent"
+  ).innerHTML =
+    "Relacionamento removido";
+}
+
+/* ==========================
+   CARDINALIDADE
+========================== */
+
+function startRelation(){
+
+  document.getElementById(
+    "cardinalityModal"
+  ).style.display="flex";
+}
+
+function confirmCardinality(){
+
+  relationCardinality =
+    document.getElementById(
+      "cardinalitySelect"
+    ).value;
+
+  document.getElementById(
+    "cardinalityModal"
+  ).style.display="none";
+
+  relationMode=true;
+
+  relationStart=null;
+
+  showModal(
+    "Clique primeiro no campo PK e depois no campo FK"
+  );
+}
+
+/* ==========================
+   RELACIONAMENTOS
+========================== */
+
+document.addEventListener(
+  "click",
+  (e)=>{
+
+    if(!relationMode)
+      return;
+
+    const fieldElement =
+      e.target.closest(".field");
+
+    if(!fieldElement)
+      return;
+
+    const fieldId =
+      fieldElement.dataset.id;
+
+    const field =
+      findField(fieldId);
+
+    if(!relationStart){
+
+      if(!field.pk){
+
+        showModal(
+          "Primeiro campo deve ser PK"
+        );
+
+        return;
+      }
+
+      relationStart = field;
+
+      showModal(
+        "Agora selecione o campo FK"
+      );
+
+      return;
+    }
+
+    if(field.id == relationStart.id){
+
+      showModal(
+        "Selecione outro campo"
+      );
+
+      return;
+    }
+
+    field.fk = true;
+
+    relations.push({
+
+      from:relationStart.id,
+      to:field.id,
+
+      cardinality:
+        relationCardinality
+
+    });
+
+    relationMode = false;
+
+    relationStart = null;
+
+    render();
+    renderGrid();
+
+    showModal(
+      "Relacionamento criado com sucesso"
+    );
+
+  }
+);
+
+/* ==========================
+   TABELAS
+========================== */
+
+function deleteTable(id){
+
+  tables =
+    tables.filter(
+      t => t.id !== id
+    );
+
+  relations =
+    relations.filter(r => {
+
+      const fromTable =
+        findTableByField(r.from);
+
+      const toTable =
+        findTableByField(r.to);
+
+      if(!fromTable || !toTable)
+        return false;
+
+      return (
+        fromTable.id !== id &&
+        toTable.id !== id
+      );
+
+    });
+
+  selectedTable = null;
+
+  render();
+
+  document.getElementById(
+    "gridContent"
+  ).innerHTML =
+    "Selecione uma tabela";
+
+  document.getElementById(
+    "relationContent"
+  ).innerHTML =
+    "Selecione um campo";
+}
+
+/* ==========================
+   SQL
+========================== */
+
+function showSQL(){
+
+  let sql="";
+
+  tables.forEach(table=>{
+
+    sql += `CREATE TABLE ${table.name} (\n`;
+
+    let lines = [];
+
+    table.fields.forEach(field=>{
+
+      let line =
+        `  ${field.name} ${field.type}`;
+
+      if(field.nn)
+        line += " NOT NULL";
+
+      if(field.ai)
+        line += " AUTO_INCREMENT";
+
+      if(field.uq)
+        line += " UNIQUE";
+
+      if(field.pk)
+        line += " PRIMARY KEY";
+
+      lines.push(line);
+    });
+
+    relations.forEach(rel=>{
+
+      const fromTable =
+        findTableByField(rel.from);
+
+      const toTable =
+        findTableByField(rel.to);
+
+      if(!fromTable || !toTable)
+        return;
+
+      if(toTable.id !== table.id)
+        return;
+
+      const fromField =
+        findField(rel.from);
+
+      const toField =
+        findField(rel.to);
+
+      lines.push(
+        `  FOREIGN KEY (${toField.name}) REFERENCES ${fromTable.name}(${fromField.name})`
+      );
+    });
+
+    sql +=
+      lines.join(",\n");
+
+    sql += "\n);\n\n";
+  });
+
+  lastSQL = sql;
+
+  document
+    .getElementById("sqlContent")
+    .innerHTML =
+      formatSQL(sql);
+
+  document
+    .getElementById("sqlModal")
+    .style.display="flex";
+}
+
+function formatSQL(sql){
+
+  return sql
+
+    .replace(
+      /CREATE TABLE/g,
+      '<span class="sql-key">CREATE TABLE</span>'
+    )
+
+    .replace(
+      /INT|BIGINT|VARCHAR\(255\)|TEXT|DATE|DATETIME|BOOLEAN|DECIMAL\(10,2\)/g,
+      '<span class="sql-type">$&</span>'
+    )
+
+    .replace(
+      /PRIMARY KEY|NOT NULL|AUTO_INCREMENT|UNIQUE|FOREIGN KEY|REFERENCES/g,
+      '<span class="sql-constraint">$&</span>'
+    );
+}
+
+function closeSQL(){
+
+  document
+    .getElementById("sqlModal")
+    .style.display="none";
+}
+
+function downloadSQL(){
+
+  download(
+    "modelo.sql",
+    lastSQL
+  );
+}
+
+/* ==========================
+   JSON
+========================== */
+
+function exportJSON(){
+
+  download(
+    "modelo.mer",
+    JSON.stringify(
+      {
+        tables,
+        relations
+      },
+      null,
+      2
+    )
+  );
+}
+
+function importJSON(event){
+
+  const file =
+    event.target.files[0];
+
+  if(!file)
+    return;
+
+  const reader =
+    new FileReader();
+
+  reader.onload = ()=>{
+
+    const data =
+      JSON.parse(
+        reader.result
+      );
+
+    tables =
+      data.tables || [];
+
+    relations =
+      data.relations || [];
+
+    selectedTable=null;
+    selectedFieldId=null;
+
+    render();
+
+    document
+      .getElementById(
+        "gridContent"
+      ).innerHTML =
+      "Selecione uma tabela";
+
+    document
+      .getElementById(
+        "relationContent"
+      ).innerHTML =
+      "Selecione um campo";
+  };
+
+  reader.readAsText(file);
+}
+
+/* ==========================
+   DOWNLOAD
+========================== */
+
+function download(name,text){
+
+  const a =
+    document.createElement("a");
+
+  a.href =
+    URL.createObjectURL(
+      new Blob([text])
+    );
+
+  a.download = name;
+
+  a.click();
+}
+
+/* ==========================
+   SVG RELATIONS
+========================== */
+
+function getTableCenter(table){
+
+  return {
+    x: table.x + 125,
+    y: table.y + 40
+  };
+
+}
+
+function drawRelations(){
+
+  const svg =
+    document.getElementById("svg");
+
+  svg.innerHTML="";
+
+  const relationCount={};
+
+  relations.forEach(r=>{
+
+    relationCount[r.from] =
+      (relationCount[r.from]||0)+1;
+
+  });
+
+  const relationIndex={};
+
+  relations.forEach(rel=>{
+
+    const fromTable =
+      findTableByField(rel.from);
+
+    const toTable =
+      findTableByField(rel.to);
+
+    if(!fromTable || !toTable)
+      return;
+
+    const fromCenter={
+      x:fromTable.x+125,
+      y:fromTable.y+50
+    };
+
+    const toCenter={
+      x:toTable.x+125,
+      y:toTable.y+50
+    };
+
+    const dx =
+      toCenter.x-fromCenter.x;
+
+    const dy =
+      toCenter.y-fromCenter.y;
+
+    let x1,y1,x2,y2;
+
+    if(Math.abs(dx) > Math.abs(dy)){
+
+      if(dx>0){
+
+        x1 = fromTable.x+250;
+        y1 = fromCenter.y;
+
+        x2 = toTable.x;
+        y2 = toCenter.y;
+
+      }else{
+
+        x1 = fromTable.x;
+        y1 = fromCenter.y;
+
+        x2 = toTable.x+250;
+        y2 = toCenter.y;
+      }
+
+    }else{
+
+      const fromElement =
+          [...document.querySelectorAll(".table")]
+          .find(el =>
+            parseInt(el.style.left) === fromTable.x &&
+            parseInt(el.style.top) === fromTable.y
+          );
+
+        const toElement =
+          [...document.querySelectorAll(".table")]
+          .find(el =>
+            parseInt(el.style.left) === toTable.x &&
+            parseInt(el.style.top) === toTable.y
+          );
+
+        const fromHeight =
+          fromElement
+            ? fromElement.offsetHeight
+            : getTableHeight(fromTable);
+
+        const toHeight =
+          toElement
+            ? toElement.offsetHeight
+            : getTableHeight(toTable);
+
+        if(dy>0){
+
+          x1 = fromCenter.x;
+          y1 = fromTable.y + fromHeight;
+
+          x2 = toCenter.x;
+          y2 = toTable.y;
+
+        }else{
+
+          x1 = fromCenter.x;
+          y1 = fromTable.y;
+
+          x2 = toCenter.x;
+          y2 = toTable.y + toHeight;
+        }
+    }
+
+    const idx =
+      relationIndex[rel.from]||0;
+
+    relationIndex[rel.from]=
+      idx+1;
+
+    const total =
+      relationCount[rel.from];
+
+    const offset =
+      (idx-(total-1)/2)*25;
+
+    if(Math.abs(dx)>Math.abs(dy)){
+
+      y1+=offset;
+      y2+=offset;
+
+    }else{
+
+      x1+=offset;
+      x2+=offset;
+    }
+
+    const midX=(x1+x2)/2;
+    const midY=(y1+y2)/2;
+
+    const path =
+      document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "path"
+      );
+
+    let d="";
+
+    if(Math.abs(dx)>Math.abs(dy)){
+
+      d=
+      `
+      M ${x1} ${y1}
+      L ${midX} ${y1}
+      L ${midX} ${y2}
+      L ${x2} ${y2}
+      `;
+
+    }else{
+
+      d=
+      `
+      M ${x1} ${y1}
+      L ${x1} ${midY}
+      L ${x2} ${midY}
+      L ${x2} ${y2}
+      `;
+    }
+
+    path.setAttribute("d",d);
+
+    path.setAttribute(
+      "stroke",
+      "white"
+    );
+
+    path.setAttribute(
+      "fill",
+      "none"
+    );
+
+    path.setAttribute(
+      "stroke-width",
+      "2"
+    );
+
+    svg.appendChild(path);
+
+    drawCardinality(
+      svg,
+      x1,
+      y1,
+      x2,
+      y2,
+      rel.cardinality
+    );
+
+  });
+
+}
+
+/* ==========================
+   CARDINALIDADE SVG
+========================== */
+
+function drawCardinality(
+  svg,
+  x1,
+  y1,
+  x2,
+  y2,
+  card
+){
+
+  let left  = "1";
+  let right = "N";
+
+  if(card==="1:1"){
+    left="1";
+    right="1";
+  }
+
+  if(card==="N:N"){
+    left="N";
+    right="N";
+  }
+
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+
+  let startX,startY;
+  let endX,endY;
+
+  const DIST = 22;
+
+  if(Math.abs(dx) > Math.abs(dy)){
+
+    /* =====================
+       RELAÇÃO HORIZONTAL
+    ===================== */
+
+    if(dx > 0){
+
+      startX = x1 + DIST;
+      startY = y1 - 8;
+
+      endX = x2 - DIST;
+      endY = y2 - 8;
+
+    }else{
+
+      startX = x1 - DIST;
+      startY = y1 - 8;
+
+      endX = x2 + DIST;
+      endY = y2 - 8;
+    }
+
+  }else{
+
+    /* =====================
+       RELAÇÃO VERTICAL
+    ===================== */
+
+    if(dy > 0){
+
+      startX = x1 + 15;
+      startY = y1 + 18;
+
+      endX = x2 + 15;
+      endY = y2 - 8;
+
+    }else{
+
+      startX = x1 + 15;
+      startY = y1 - 8;
+
+      endX = x2 + 15;
+      endY = y2 + 18;
+    }
+  }
+
+  const start =
+    document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "text"
+    );
+
+  start.setAttribute("x",startX);
+  start.setAttribute("y",startY);
+
+  start.setAttribute(
+    "class",
+    "cardinality-label"
+  );
+
+  start.setAttribute(
+    "text-anchor",
+    "middle"
+  );
+
+  start.textContent = left;
+
+  svg.appendChild(start);
+
+  const end =
+    document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "text"
+    );
+
+  end.setAttribute("x",endX);
+  end.setAttribute("y",endY);
+
+  end.setAttribute(
+    "class",
+    "cardinality-label"
+  );
+
+  end.setAttribute(
+    "text-anchor",
+    "middle"
+  );
+
+  end.textContent = right;
+
+  svg.appendChild(end);
+}
+
+/* ==========================
+   HELPERS
+========================== */
+
+
+function findField(id){
+
+  for(const table of tables){
+
+    for(const field of table.fields){
+
+      if(field.id == id)
+        return field;
+    }
+  }
+
+  return null;
+}
+
+function findTableByField(fieldId){
+
+  for(const table of tables){
+
+    for(const field of table.fields){
+
+      if(field.id == fieldId)
+        return table;
+    }
+  }
+
+  return null;
+}
+
+/* ==========================
+   INIT
+========================== */
+
+render();
+
+</script>
+
+</body>
+</html>
