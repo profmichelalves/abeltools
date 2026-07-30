@@ -1261,26 +1261,30 @@ function showSQL(){
 
   tables.forEach(table=>{
 
-    sql += `CREATE TABLE ${table.name} (\n`;
+    sql += `CREATE TABLE IF NOT EXISTS \`${table.name}\` (\n`;
 
     let lines = [];
 
     table.fields.forEach(field=>{
 
       let line =
-        `  ${field.name} ${field.type}`;
+        `  \`${field.name}\` ${field.type}`;
 
-      if(field.nn)
-        line += " NOT NULL";
+      const isInteger = field.type === "INTEGER";
 
-      if(field.ai)
-        line += " AUTOINCREMENT";
-
-      if(field.uq)
-        line += " UNIQUE";
-
-      if(field.pk)
-        line += " PRIMARY KEY";
+      if (field.pk) {
+        if (field.ai && isInteger)
+          line += " PRIMARY KEY AUTOINCREMENT";
+        else
+          line += " PRIMARY KEY";
+      } else {
+        if (field.nn)
+          line += " NOT NULL";
+        if (field.ai && isInteger)
+          line += " AUTOINCREMENT";
+        if (field.uq)
+          line += " UNIQUE";
+      }
 
       lines.push(line);
     });
@@ -1306,7 +1310,7 @@ function showSQL(){
         findField(rel.to);
 
       lines.push(
-        `  FOREIGN KEY (${toField.name}) REFERENCES ${fromTable.name}(${fromField.name})`
+        `  FOREIGN KEY (\`${toField.name}\`) REFERENCES \`${fromTable.name}\`(\`${fromField.name}\`)`
       );
     });
 
