@@ -15,206 +15,384 @@ href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.c
 
 <style>
 
-body{
-margin:0;
-font-family:Arial;
-height:100vh;
-display:flex;
-background:#F4F7FB;
+:root{
+
+  --bg:        #0d1117;
+  --surface:   #161b22;
+  --surface-2: #1f2630;
+  --border:    #2d333b;
+
+  --accent:    #6c5ce7;
+  --accent-2:  #00cec9;
+
+  --pk:        #fdcb6e;
+  --danger:    #ff6b6b;
+
+  --text:      #e6edf3;
+  --muted:     #8b949e;
+
 }
 
-/* SIDEBAR */
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  font-family:"Segoe UI",Arial,sans-serif;
+  height:100vh;
+  display:flex;
+  background:var(--bg);
+  color:var(--text);
+  overflow:hidden;
+}
+
+/* ===== SIDEBAR ===== */
 
 #sidebar{
-width:300px;
-background:#FFFFFF;
-border-right:3px solid #2E3192;
-padding:10px;
-overflow:auto;
+  width:300px;
+  min-width:300px;
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
 }
 
-#sidebar h3{
-color:#2E3192;
-margin-top:0;
+#sidebar header{
+  padding:18px 16px;
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  gap:10px;
+  background:linear-gradient(135deg,var(--accent),#4a3fbf);
+}
+
+#sidebar header h3{
+  margin:0;
+  font-size:15px;
+  letter-spacing:.5px;
+  color:#fff;
+}
+
+#sidebar header .logo{
+  width:34px;
+  height:34px;
+  border-radius:9px;
+  background:rgba(255,255,255,.15);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:18px;
+}
+
+#tree{
+  flex:1;
+  overflow:auto;
+  padding:12px;
 }
 
 /* árvore */
 
 .tree ul{
-list-style:none;
-padding-left:18px;
-margin:2px 0;
+  list-style:none;
+  padding-left:16px;
+  margin:2px 0;
+  border-left:1px dashed var(--border);
 }
 
 .tree li{
-margin:3px 0;
+  margin:2px 0;
+  font-size:13px;
+}
+
+.tree .db,
+.tree .table,
+.tree .column{
+  padding:5px 8px;
+  border-radius:6px;
+  transition:background .15s;
+}
+
+.tree .db:hover,
+.tree .table:hover,
+.tree .column:hover{
+  background:var(--surface-2);
 }
 
 /* itens */
 
 .db{
-font-weight:bold;
-color:#2E3192;
-font-size:15px;
+  font-weight:bold;
+  color:var(--accent-2);
+  font-size:14px;
+  background:rgba(0,206,201,.07);
+  border:1px solid rgba(0,206,201,.15);
 }
 
 .table{
-color:#00AEEF;
-font-weight:bold;
+  color:#7aa2f7;
+  font-weight:bold;
 }
 
 .column{
-color:#444;
-font-size:13px;
+  color:#b8c2cc;
+  font-size:12px;
 }
 
 .icon{
-margin-right:6px;
+  margin-right:6px;
+  font-size:12px;
 }
 
 /* ICONES DE METADADOS */
 
 .pk{
-color:#FCEE21;
-font-size:14px;
-margin-left:4px;
-cursor:help;
+  color:var(--pk);
+  font-size:13px;
+  margin-left:4px;
+  cursor:help;
 }
 
 .fk{
-color:#999;
-font-size:14px;
-margin-left:4px;
-cursor:help;
+  color:#a5a8f5;
+  font-size:13px;
+  margin-left:4px;
+  cursor:help;
 }
 
 .notnull{
-color:#e67e22;
-margin-left:4px;
-cursor:help;
+  color:#ff9f43;
+  font-size:13px;
+  margin-left:4px;
+  cursor:help;
 }
 
 .numeric{
-color:#2E3192;
-margin-left:4px;
-cursor:help;
+  color:var(--accent-2);
+  font-size:13px;
+  margin-left:4px;
+  cursor:help;
 }
 
-/* MAIN */
+/* ===== MAIN ===== */
 
 #main{
-flex:1;
-display:flex;
-flex-direction:column;
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  min-width:0;
 }
 
 /* TOOLBAR */
 
 #toolbar{
-background:#2E3192;
-color:white;
-padding:8px;
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  padding:10px 14px;
+  display:flex;
+  align-items:center;
+  gap:8px;
 }
 
 button{
-background:#00AEEF;
-border:none;
-color:white;
-padding:6px 12px;
-margin-right:6px;
-border-radius:4px;
-cursor:pointer;
-font-weight:bold;
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  color:var(--text);
+  padding:8px 14px;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:600;
+  font-size:13px;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  transition:all .15s;
 }
 
 button:hover{
-background:#0095cc;
+  border-color:var(--accent);
+  color:#fff;
+}
+
+button.primary{
+  background:linear-gradient(135deg,var(--accent),#4a3fbf);
+  border-color:transparent;
+  color:#fff;
+  box-shadow:0 2px 8px rgba(108,92,231,.35);
+}
+
+button.primary:hover{
+  filter:brightness(1.1);
+}
+
+button.success{
+  background:linear-gradient(135deg,#00b894,#00a381);
+  border-color:transparent;
+  color:#fff;
+}
+
+button.success:hover{
+  filter:brightness(1.1);
 }
 
 /* EDITOR */
 
 .CodeMirror{
-height:200px;
-border-bottom:3px solid #2E3192;
+  height:220px;
+  background:var(--bg) !important;
+  color:var(--text) !important;
+  border-bottom:1px solid var(--border);
+  font-family:Consolas,Menlo,monospace;
+  font-size:13.5px;
+}
+
+.CodeMirror-gutters{
+  background:var(--surface) !important;
+  border-right:1px solid var(--border) !important;
+}
+
+.CodeMirror-linenumber{
+  color:#484f58 !important;
+}
+
+.CodeMirror-cursor{
+  border-left:1px solid var(--accent) !important;
+}
+
+.CodeMirror-selected{
+  background:rgba(108,92,231,.25) !important;
 }
 
 /* RESULT GRID */
 
 #result{
-flex:1;
-overflow:auto;
-padding:10px;
-background:white;
+  flex:1;
+  overflow:auto;
+  padding:14px;
+  background:var(--bg);
 }
 
 table{
-border-collapse:collapse;
-width:100%;
-font-size:14px;
+  border-collapse:collapse;
+  width:100%;
+  font-size:13px;
+  background:var(--surface);
+  border-radius:10px;
+  overflow:hidden;
+  box-shadow:0 4px 20px rgba(0,0,0,.3);
 }
 
 th{
-background:#2E3192;
-color:white;
-padding:7px;
+  background:var(--surface-2);
+  color:var(--accent-2);
+  padding:10px 12px;
+  text-align:left;
+  font-weight:700;
+  letter-spacing:.4px;
+  text-transform:uppercase;
+  font-size:12px;
+  position:sticky;
+  top:0;
+  border-bottom:1px solid var(--border);
 }
 
 td{
-padding:6px;
-border:1px solid #ddd;
+  padding:8px 12px;
+  border-bottom:1px solid var(--border);
+}
+
+tr:last-child td{
+  border-bottom:none;
 }
 
 tr:nth-child(even){
-background:#f3f6fb;
+  background:var(--surface-2);
+}
+
+tr:hover{
+  background:rgba(108,92,231,.12);
 }
 
 td.number{
-text-align:right;
-color:#2E3192;
-font-weight:bold;
+  text-align:right;
+  color:var(--accent-2);
+  font-weight:bold;
 }
 
 td.text{
-text-align:left;
+  text-align:left;
 }
 
 td.null{
-color:#aaa;
-font-style:italic;
+  color:var(--muted);
+  font-style:italic;
+}
+
+/* MENSAGEM SEM RESULTADO */
+
+#result .empty{
+  color:var(--muted);
+  text-align:center;
+  padding:40px 0;
+  font-size:14px;
+}
+
+#result pre{
+  color:var(--danger);
+  background:rgba(255,107,107,.08);
+  border:1px solid rgba(255,107,107,.25);
+  border-radius:8px;
+  padding:12px;
+  white-space:pre-wrap;
 }
 
 /* MODAL */
 
 #modal{
-position:fixed;
-top:0;
-left:0;
-right:0;
-bottom:0;
-background:rgba(0,0,0,0.5);
-display:none;
-align-items:center;
-justify-content:center;
+  position:fixed;
+  top:0;
+  left:0;
+  right:0;
+  bottom:0;
+  background:rgba(0,0,0,.6);
+  backdrop-filter:blur(4px);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:100;
 }
 
 #modalContent{
-background:white;
-padding:20px;
-border-radius:6px;
-width:300px;
-border-top:6px solid #FCEE21;
+  background:var(--surface);
+  padding:24px;
+  border-radius:14px;
+  width:320px;
+  border:1px solid var(--border);
+  border-top:4px solid var(--accent);
+  box-shadow:0 20px 50px rgba(0,0,0,.5);
 }
 
 #modalContent h3{
-margin-top:0;
-color:#2E3192;
+  margin:0 0 14px;
+  color:var(--text);
+  font-size:17px;
 }
 
 #modalContent input{
-width:100%;
-padding:7px;
-margin:10px 0;
-border:1px solid #ccc;
+  width:100%;
+  padding:10px 12px;
+  margin:8px 0 16px;
+  border:1px solid var(--border);
+  border-radius:8px;
+  background:var(--bg);
+  color:var(--text);
+  outline:none;
+}
+
+#modalContent input:focus{
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(108,92,231,.2);
 }
 
 </style>
@@ -225,42 +403,46 @@ border:1px solid #ccc;
 
 <div id="sidebar">
 
-<h3>🗄 Bancos</h3>
-<div id="tree" class="tree"></div>
+  <header>
+    <span class="logo">🗄</span>
+    <h3>Bancos de Dados</h3>
+  </header>
+
+  <div id="tree" class="tree"></div>
 
 </div>
 
 <div id="main">
 
-<div id="toolbar">
+  <div id="toolbar">
 
-<button onclick="abrirModal()">Novo Banco</button>
-<button onclick="abrirBanco()">Abrir</button>
-<button onclick="salvarBanco()">Salvar</button>
-<button onclick="executarSQL()">Executar</button>
+    <button class="primary" onclick="abrirModal()">＋ Novo Banco</button>
+    <button onclick="abrirBanco()">📂 Abrir</button>
+    <button onclick="salvarBanco()">💾 Salvar</button>
+    <button class="success" onclick="executarSQL()">▶ Executar</button>
 
-<input type="file" id="fileInput" style="display:none"/>
+    <input type="file" id="fileInput" style="display:none"/>
 
-</div>
+  </div>
 
-<textarea id="editor"></textarea>
+  <textarea id="editor"></textarea>
 
-<div id="result"></div>
+  <div id="result"></div>
 
 </div>
 
 <div id="modal">
 
-<div id="modalContent">
+  <div id="modalContent">
 
-<h3>Novo Banco</h3>
+    <h3>Novo Banco</h3>
 
-<input id="dbName" placeholder="nome do banco">
+    <input id="dbName" placeholder="nome do banco">
 
-<button onclick="criarBanco()">Criar</button>
-<button onclick="fecharModal()">Cancelar</button>
+    <button class="primary" onclick="criarBanco()">Criar</button>
+    <button onclick="fecharModal()">Cancelar</button>
 
-</div>
+  </div>
 
 </div>
 
@@ -343,7 +525,7 @@ function mostrarResultado(res){
 
 if(!res.length){
 
-document.getElementById("result").innerHTML="Sem resultado"
+document.getElementById("result").innerHTML="<div class='empty'>Sem resultado</div>"
 return
 
 }
