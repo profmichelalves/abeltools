@@ -134,6 +134,23 @@ body{
   transform-origin:0 0;
 }
 
+#resizeHandle{
+  position:absolute;
+  right:0;
+  bottom:0;
+  width:18px;
+  height:18px;
+  cursor:nwse-resize;
+  z-index:1000;
+  background:#4a4d66;
+  clip-path:polygon(100% 100%, 100% 0, 0 100%);
+  opacity:.7;
+}
+
+#resizeHandle:hover{
+  opacity:1;
+}
+
 #svg{
   position:absolute;
   top:0;
@@ -338,6 +355,8 @@ button{
 
     <svg id="svg"></svg>
 
+    <div id="resizeHandle"></div>
+
   </div>
 
 </div>
@@ -503,6 +522,98 @@ function zoomOut(){
 
   applyZoom();
 }
+
+/* ==========================
+   RESIZE DO CANVAS
+========================== */
+
+function applyCanvasSize(w,h){
+
+  const workspace =
+    document.getElementById("canvasWorkspace");
+
+  const svg =
+    document.getElementById("svg");
+
+  workspace.style.width  = w + "px";
+  workspace.style.height = h + "px";
+
+  svg.style.width  = w + "px";
+  svg.style.height = h + "px";
+}
+
+(function initResize(){
+
+  const handle =
+    document.getElementById("resizeHandle");
+
+  const workspace =
+    document.getElementById("canvasWorkspace");
+
+  let resizing = false;
+  let startX = 0;
+  let startY = 0;
+  let startW = 0;
+  let startH = 0;
+
+  function start(clientX, clientY){
+
+    resizing = true;
+
+    startX = clientX;
+    startY = clientY;
+
+    startW = workspace.offsetWidth;
+    startH = workspace.offsetHeight;
+  }
+
+  function move(clientX, clientY){
+
+    if(!resizing) return;
+
+    const w = Math.max(
+      400,
+      startW + (clientX - startX) / zoom
+    );
+
+    const h = Math.max(
+      400,
+      startH + (clientY - startY) / zoom
+    );
+
+    applyCanvasSize(w,h);
+  }
+
+  function end(){
+    resizing = false;
+  }
+
+  handle.addEventListener("mousedown",e=>{
+    start(e.clientX,e.clientY);
+    e.preventDefault();
+    e.stopPropagation();
+  });
+
+  document.addEventListener("mousemove",e=>{
+    move(e.clientX,e.clientY);
+  });
+
+  document.addEventListener("mouseup",end);
+
+  handle.addEventListener("touchstart",e=>{
+    const t=e.touches[0];
+    start(t.clientX,t.clientY);
+    e.preventDefault();
+    e.stopPropagation();
+  });
+
+  document.addEventListener("touchmove",e=>{
+    const t=e.touches[0];
+    move(t.clientX,t.clientY);
+  });
+
+  document.addEventListener("touchend",end);
+})();
 
 /* ==========================
    MODAIS
