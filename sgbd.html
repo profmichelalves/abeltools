@@ -2,6 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
 <title>SQLite Web Manager</title>
 
@@ -41,6 +42,7 @@ body{
   margin:0;
   font-family:"Segoe UI",Arial,sans-serif;
   height:100vh;
+  height:100dvh;
   display:flex;
   background:var(--bg);
   color:var(--text);
@@ -50,8 +52,9 @@ body{
 /* ===== SIDEBAR ===== */
 
 #sidebar{
+  flex:0 0 300px;
   width:300px;
-  min-width:300px;
+  min-width:0;
   background:var(--surface);
   border-right:1px solid var(--border);
   display:flex;
@@ -236,15 +239,107 @@ button.success:hover{
   filter:brightness(1.1);
 }
 
+#toolbar select{
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  color:var(--text);
+  padding:8px 10px;
+  border-radius:8px;
+  font-size:13px;
+  outline:none;
+  cursor:pointer;
+  max-width:180px;
+}
+
+#toolbar select:focus{
+  border-color:var(--accent);
+}
+
+/* ===== RÓTULOS DE ÁREA ===== */
+
+.area-label{
+
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  color:var(--muted);
+  padding:4px 8px;
+  margin:0;
+  background:var(--surface-2);
+  border:1px solid var(--border);
+  border-radius:4px;
+  user-select:none;
+  pointer-events:none;
+  white-space:nowrap;
+  display:inline-flex;
+  align-items:center;
+}
+
+#sidebar .area-label{
+  align-self:flex-start;
+  margin-bottom:10px;
+}
+
+#main > .area-label{
+  margin:8px 14px 4px;
+}
+
+#resultLabel{
+  flex:0 0 auto;
+  background:var(--bg);
+}
+
+#resultLabel .area-label{
+  margin:6px 14px 10px;
+}
+
+#editorWrap{
+  flex:1 1 0;
+  min-height:0;
+  position:relative;
+  display:flex;
+  flex-direction:column;
+}
+
+#editorZoom{
+  position:absolute;
+  top:6px;
+  right:10px;
+  z-index:10;
+  display:flex;
+  align-items:center;
+  gap:4px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:2px;
+}
+
+#editorZoom button{
+  width:26px;
+  height:26px;
+  padding:0;
+  font-size:14px;
+  border-radius:6px;
+}
+
+#editorZoom span{
+  min-width:42px;
+  text-align:center;
+  font-size:12px;
+  color:var(--muted);
+}
+
 /* EDITOR */
 
 .CodeMirror{
-  height:220px;
+  flex:1 1 0;
+  min-height:80px;
+  border-bottom:none;
   background:var(--bg) !important;
   color:var(--text) !important;
-  border-bottom:1px solid var(--border);
   font-family:Consolas,Menlo,monospace;
-  font-size:13.5px;
 }
 
 .CodeMirror-gutters{
@@ -267,7 +362,8 @@ button.success:hover{
 /* RESULT GRID */
 
 #result{
-  flex:1;
+  flex:0 0 40vh;
+  min-height:80px;
   overflow:auto;
   padding:14px;
   background:var(--bg);
@@ -395,6 +491,51 @@ td.null{
   box-shadow:0 0 0 3px rgba(108,92,231,.2);
 }
 
+/* ===== DIVIDERS (REDIMENSIONÁVEIS) ===== */
+
+.splitter-row,
+.splitter-col{
+  flex:0 0 6px;
+  background:var(--border);
+  transition:background .15s;
+  touch-action:none;
+  z-index:5;
+}
+
+.splitter-row{
+  cursor:row-resize;
+}
+
+.splitter-col{
+  cursor:col-resize;
+}
+
+.splitter-row:hover,
+.splitter-col:hover,
+.splitter-row.active,
+.splitter-col.active{
+  background:var(--accent);
+}
+
+body.dragging{
+  user-select:none;
+  -webkit-user-select:none;
+}
+
+/* ===== MOBILE ===== */
+
+@media (max-width:768px){
+
+  #toolbar{
+    flex-wrap:wrap;
+  }
+
+  #sidebar{
+    flex:0 0 180px;
+    width:180px;
+  }
+}
+
 </style>
 
 </head>
@@ -412,20 +553,51 @@ td.null{
 
 </div>
 
+<div
+  class="splitter-col"
+  id="splitterSidebar"
+  title="Arraste para redimensionar"
+></div>
+
 <div id="main">
 
   <div id="toolbar">
 
+    <span class="area-label">Ferramentas</span>
+
     <button class="primary" onclick="abrirModal()">＋ Novo Banco</button>
     <button onclick="abrirBanco()">📂 Abrir</button>
     <button onclick="salvarBanco()">💾 Salvar</button>
+    <select id="dbSelect" onchange="mudarBanco()" title="Banco ativo"></select>
     <button class="success" onclick="executarSQL()">▶ Executar</button>
 
     <input type="file" id="fileInput" style="display:none"/>
 
   </div>
 
-  <textarea id="editor"></textarea>
+  <div id="editorWrap">
+
+    <span class="area-label">Editor</span>
+
+    <textarea id="editor"></textarea>
+
+    <div id="editorZoom">
+      <button onclick="editorZoomOut()" title="Reduzir zoom">−</button>
+      <span id="editorZoomLabel">13px</span>
+      <button onclick="editorZoomIn()" title="Ampliar zoom">+</button>
+    </div>
+
+  </div>
+
+  <div
+    class="splitter-row"
+    id="splitterEditor"
+    title="Arraste para redimensionar"
+  ></div>
+
+  <div id="resultLabel">
+    <span class="area-label">Resultado</span>
+  </div>
 
   <div id="result"></div>
 
@@ -449,8 +621,111 @@ td.null{
 <script>
 
 let SQL
-let db
+let dbs = {}
+let ativo = "main"
 let editor
+let editorFontSize = 13
+
+function editorZoomIn(){
+  editorFontSize += 1;
+  if(editorFontSize > 28)
+    editorFontSize = 28;
+  applyEditorZoom();
+}
+
+function editorZoomOut(){
+  editorFontSize -= 1;
+  if(editorFontSize < 7)
+    editorFontSize = 7;
+  applyEditorZoom();
+}
+
+function applyEditorZoom(){
+  if(!editor)
+    return;
+  editor.getWrapperElement().style.fontSize = editorFontSize + "px";
+  document.getElementById("editorZoomLabel").textContent = editorFontSize + "px";
+  editor.refresh();
+}
+
+let pinchStartDist = 0;
+let pinchStartSize = 13;
+let pinchActive = false;
+
+function getEditorPinchDist(e){
+
+  if(e.touches.length < 2)
+    return 0;
+
+  const dx =
+    e.touches[0].clientX -
+    e.touches[1].clientX;
+
+  const dy =
+    e.touches[0].clientY -
+    e.touches[1].clientY;
+
+  return Math.sqrt(dx*dx + dy*dy);
+}
+
+function initEditorPinch(){
+
+  if(!editor)
+    return;
+
+  const wrap =
+    editor.getWrapperElement();
+
+  wrap.addEventListener("touchstart", e=>{
+
+    if(e.touches.length === 2){
+
+      pinchActive = true;
+
+      pinchStartDist =
+        getEditorPinchDist(e);
+
+      pinchStartSize = editorFontSize;
+    }
+
+  }, {passive:false});
+
+  wrap.addEventListener("touchmove", e=>{
+
+    if(!pinchActive)
+      return;
+
+    e.preventDefault();
+
+    const dist =
+      getEditorPinchDist(e);
+
+    if(dist === 0)
+      return;
+
+    editorFontSize = Math.max(
+      7,
+      Math.min(
+        28,
+        Math.round(
+          pinchStartSize * dist / pinchStartDist
+        )
+      )
+    );
+
+    applyEditorZoom();
+  }, {passive:false});
+
+  wrap.addEventListener("touchend", e=>{
+
+    if(e.touches.length < 2)
+      pinchActive = false;
+  });
+
+  wrap.addEventListener("touchcancel", ()=>{
+    pinchActive = false;
+  });
+}
 
 async function iniciar(){
 
@@ -458,7 +733,7 @@ SQL = await initSqlJs({
 locateFile:file=>"https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/"+file
 })
 
-db = new SQL.Database()
+dbs["main"] = new SQL.Database()
 
 editor = CodeMirror.fromTextArea(
 document.getElementById("editor"),
@@ -466,6 +741,10 @@ document.getElementById("editor"),
 mode:"text/x-sql",
 lineNumbers:true
 })
+
+initEditorPinch()
+
+atualizarSelect()
 
 atualizarArvore()
 
@@ -485,15 +764,60 @@ document.getElementById("modal").style.display="none"
 
 function criarBanco(){
 
-let nome=document.getElementById("dbName").value
+let nome=document.getElementById("dbName").value.trim()
 
 if(!nome)return
 
-db.run("ATTACH DATABASE '"+nome+".db' AS "+nome)
+if(dbs[nome]){
+
+alert("Já existe um banco chamado '"+nome+"'")
+
+return
+
+}
+
+dbs[nome]=new SQL.Database()
+
+ativo=nome
+
+document.getElementById("dbName").value=""
 
 fecharModal()
 
+atualizarSelect()
+
 atualizarArvore()
+
+}
+
+/* BANCO ATIVO */
+
+function atualizarSelect(){
+
+let sel=document.getElementById("dbSelect")
+
+sel.innerHTML=""
+
+Object.keys(dbs).forEach(nome=>{
+
+let opt=document.createElement("option")
+
+opt.value=nome
+opt.textContent="🗄 "+nome
+
+if(nome===ativo)opt.selected=true
+
+sel.appendChild(opt)
+
+})
+
+}
+
+function mudarBanco(){
+
+ativo=document.getElementById("dbSelect").value
+
+document.getElementById("result").innerHTML=""
 
 }
 
@@ -505,7 +829,7 @@ let sql=editor.getValue()
 
 try{
 
-let res=db.exec(sql)
+let res=dbs[ativo].exec(sql)
 
 mostrarResultado(res)
 
@@ -570,29 +894,25 @@ function atualizarArvore(){
 
 let html="<ul>"
 
-let dbs=db.exec("PRAGMA database_list")
-
-dbs[0].values.forEach(d=>{
-
-let nome=d[1]
+Object.keys(dbs).forEach(nome=>{
 
 html+="<li class='db'><span class='icon'>🗄</span>"+nome
 
-let tables=db.exec("SELECT name FROM "+nome+".sqlite_master WHERE type='table'")
+let tabelas=dbs[nome].exec("SELECT name FROM sqlite_master WHERE type='table'")
 
-if(tables.length){
+if(tabelas.length){
 
 html+="<ul>"
 
-tables[0].values.forEach(t=>{
+tabelas[0].values.forEach(t=>{
 
 let table=t[0]
 
 html+="<li class='table'><span class='icon'>📋</span>"+table
 
-let cols=db.exec("PRAGMA "+nome+".table_info("+table+")")
+let cols=dbs[nome].exec("PRAGMA table_info("+table+")")
 
-let fkList=db.exec("PRAGMA "+nome+".foreign_key_list("+table+")")
+let fkList=dbs[nome].exec("PRAGMA foreign_key_list("+table+")")
 
 if(cols.length){
 
@@ -662,7 +982,7 @@ document.getElementById("tree").innerHTML=html
 
 function salvarBanco(){
 
-let data=db.export()
+let data=dbs[ativo].export()
 
 let blob=new Blob([data])
 
@@ -671,7 +991,7 @@ let url=URL.createObjectURL(blob)
 let a=document.createElement("a")
 
 a.href=url
-a.download="database.db"
+a.download=ativo+".db"
 
 a.click()
 
@@ -696,7 +1016,15 @@ reader.onload=function(){
 
 let arr=new Uint8Array(reader.result)
 
-db=new SQL.Database(arr)
+let nome=file.name.replace(/\.db$/i,"")
+
+if(dbs[nome])nome+="_"+Date.now()
+
+dbs[nome]=new SQL.Database(arr)
+
+ativo=nome
+
+atualizarSelect()
 
 atualizarArvore()
 
@@ -705,6 +1033,130 @@ atualizarArvore()
 reader.readAsArrayBuffer(file)
 
 })
+
+/* ==========================
+   DIVIDERS REDIMENSIONÁVEIS
+========================== */
+
+function makeSplitter(bar,resizeEl,axis,getTotal,sign){
+
+let dragging=false
+let startPos=0
+let startSize=0
+
+function getPos(e){
+
+let t=e.touches?e.touches[0]:e
+
+return axis==="x"
+? t.clientX
+: t.clientY
+
+}
+
+function start(e){
+
+dragging=true
+
+startPos=getPos(e)
+
+startSize=axis==="x"
+? resizeEl.offsetWidth
+: resizeEl.offsetHeight
+
+bar.classList.add("active")
+
+document.body.classList.add("dragging")
+
+document.body.style.cursor=axis==="x"
+? "col-resize"
+: "row-resize"
+
+if(e.touches)
+e.preventDefault()
+
+}
+
+function move(e){
+
+if(!dragging)return
+
+const delta=getPos(e)-startPos
+
+let size=sign==="+"
+? startSize+delta
+: startSize-delta
+
+const MIN=axis==="x"?150:80
+
+const total=getTotal()
+
+size=Math.max(MIN,Math.min(size,total-MIN))
+
+resizeEl.style.flex="0 0 "+size+"px"
+
+if(e.touches)
+e.preventDefault()
+
+}
+
+function end(){
+
+dragging=false
+
+bar.classList.remove("active")
+
+document.body.classList.remove("dragging")
+
+document.body.style.cursor=""
+
+if(typeof editor!=="undefined"&&editor)
+editor.refresh()
+
+}
+
+bar.addEventListener("mousedown",start)
+
+bar.addEventListener("touchstart",start,{passive:false})
+
+document.addEventListener("mousemove",move)
+
+document.addEventListener("mouseup",end)
+
+document.addEventListener("touchmove",move,{passive:false})
+
+document.addEventListener("touchend",end)
+
+}
+
+/* sidebar ↔ main */
+
+makeSplitter(
+document.getElementById("splitterSidebar"),
+document.getElementById("sidebar"),
+"x",
+()=>document.body.clientWidth,
+"+"
+)
+
+/* editor ↔ resultado */
+
+makeSplitter(
+document.getElementById("splitterEditor"),
+document.getElementById("result"),
+"y",
+()=>{
+
+let main=document.getElementById("main")
+
+let toolbar=document.getElementById("toolbar")
+
+let bar=document.getElementById("splitterEditor")
+
+return main.clientHeight-toolbar.offsetHeight-bar.offsetHeight
+}
+
+)
 
 iniciar()
 

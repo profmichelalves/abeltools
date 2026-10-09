@@ -3,6 +3,7 @@
 
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mini Workbench V7.3</title>
 
 <style>
@@ -12,6 +13,11 @@ body{
   font-family:Arial;
   background:#1e1e2f;
   color:white;
+  height:100vh;
+  height:100dvh;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
 }
 
 /* ===== TOOLBAR ===== */
@@ -25,7 +31,7 @@ body{
 
   padding:17px 10px;
 
-  display:ruby-text;
+  display:flex;
   align-items:center;
   gap:8px;
 
@@ -87,7 +93,7 @@ body{
 
 /* ===== BOTÃO PRINCIPAL ===== */
 
-#toolbar button:first-child{
+#toolbar button:first-of-type{
 
   background:linear-gradient(
     to bottom,
@@ -98,7 +104,7 @@ body{
   border-color:#5d90e3;
 }
 
-#toolbar button:first-child:hover{
+#toolbar button:first-of-type:hover{
 
   background:linear-gradient(
     to bottom,
@@ -118,13 +124,58 @@ body{
     padding: 4px;
 }
 
+/* ===== RÓTULOS DE ÁREA ===== */
 
+.area-label{
 
+  font-size:10px;
+  font-weight:600;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  color:rgba(255,255,255,.4);
+  padding:4px 8px;
+  margin:0;
+  background:rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:4px;
+  user-select:none;
+  pointer-events:none;
+  white-space:nowrap;
+}
+
+#toolbar .area-label{
+  display:inline-flex;
+  align-items:center;
+}
+
+#canvasScroll .area-label{
+  position:sticky;
+  top:6px;
+  left:6px;
+  display:inline-block;
+  z-index:5;
+}
+
+#grid .area-label{
+  display:inline-block;
+  margin-bottom:6px;
+}
 
 #canvasContainer{
-  height:65vh;
-  overflow:auto;
+  flex:1 1 0;
+  min-height:0;
+  position:relative;
   background:#2a2a3a;
+}
+
+#canvasScroll{
+  position:absolute;
+  top:0;
+  left:0;
+  right:0;
+  bottom:0;
+  overflow:auto;
+  touch-action:pan-x pan-y;
 }
 
 #canvasWorkspace{
@@ -132,6 +183,40 @@ body{
   width:4000px;
   height:4000px;
   transform-origin:0 0;
+}
+
+#diagramZoom{
+  position:absolute;
+  top:8px;
+  right:8px;
+  z-index:10;
+  display:flex;
+  align-items:center;
+  gap:4px;
+  background:#1e1e2f;
+  border:1px solid #3c3f55;
+  border-radius:6px;
+  padding:2px;
+}
+
+#diagramZoom button{
+  width:26px;
+  height:26px;
+  padding:0;
+  font-size:14px;
+  border-radius:4px;
+}
+
+#diagramZoom button:hover{
+  background:#3a3e5a;
+  border-color:#6a6f92;
+}
+
+#diagramZoom span{
+  min-width:44px;
+  text-align:center;
+  font-size:12px;
+  color:rgba(255,255,255,.7);
 }
 
 #svg{
@@ -144,26 +229,50 @@ body{
 }
 
 #grid{
-  height:35vh;
+  flex:0 0 30vh;
+  min-height:80px;
   background:#1a1a26;
   padding:10px;
-  border-top:2px solid #444;
+  border-top:1px solid #444;
   overflow:auto;
 }
 
 #gridWrapper{
   display:flex;
-  gap:10px;
 }
 
 #gridContent{
-  width:65%;
+  flex:1 1 0;
+  min-width:0;
 }
 
-#relationContent{
-  width:35%;
-  border-left:1px solid #444;
-  padding-left:10px;
+/* ===== DIVIDER (REDIMENSIONÁVEL) ===== */
+
+.splitter-x{
+  flex:0 0 6px;
+  background:#3c3f55;
+  cursor:row-resize;
+  transition:background .15s;
+  touch-action:none;
+}
+
+.splitter-x:hover,
+.splitter-x.active{
+  background:#4cafef;
+}
+
+body.dragging{
+  user-select:none;
+  -webkit-user-select:none;
+}
+
+/* ===== MOBILE ===== */
+
+@media (max-width:768px){
+
+  #toolbar{
+    flex-wrap:wrap;
+  }
 }
 
 table{
@@ -251,7 +360,8 @@ button{
 
 #modal,
 #sqlModal,
-#cardinalityModal{
+#cardinalityModal,
+#relationModal{
   position:fixed;
   top:0;
   left:0;
@@ -261,6 +371,11 @@ button{
   display:none;
   align-items:center;
   justify-content:center;
+  z-index:100;
+}
+
+#relationModal .box{
+  width:420px;
 }
 
 .box{
@@ -301,6 +416,8 @@ button{
 
 <div id="toolbar">
 
+  <span class="area-label">Ferramentas</span>
+
   <button onclick="createTable()">
     ➕ Tabela
   </button>
@@ -316,14 +433,6 @@ button{
   <button onclick="exportJSON()">
     💾 Exportar Modelo
   </button>
-  
-  <button onclick="zoomOut()">-</button>
-
-  <span id="zoomLabel">
-  100%
-  </span>
-
-  <button onclick="zoomIn()">+</button>
 
   <input
     type="file"
@@ -334,26 +443,40 @@ button{
 
 <div id="canvasContainer">
 
-  <div id="canvasWorkspace">
+  <div id="canvasScroll">
 
-    <svg id="svg"></svg>
+    <span class="area-label">Diagrama</span>
 
+    <div id="canvasWorkspace">
+
+      <svg id="svg"></svg>
+
+    </div>
+
+  </div>
+
+  <div id="diagramZoom">
+    <button onclick="zoomOut()" title="Reduzir zoom">−</button>
+    <span id="zoomLabel">100%</span>
+    <button onclick="zoomIn()" title="Ampliar zoom">+</button>
   </div>
 
 </div>
 
+<div
+  class="splitter-x"
+  id="splitterCanvas"
+  title="Arraste para redimensionar"
+></div>
+
 <div id="grid">
 
-  <h3>Editor</h3>
+  <h3 class="area-label">Editor</h3>
 
   <div id="gridWrapper">
 
     <div id="gridContent">
       Selecione uma tabela
-    </div>
-
-    <div id="relationContent">
-      Selecione um campo
     </div>
 
   </div>
@@ -370,6 +493,33 @@ button{
 
     <button onclick="closeModal()">
       OK
+    </button>
+
+  </div>
+
+</div>
+
+<!-- MODAL RELACIONAMENTO -->
+
+<div id="relationModal">
+
+  <div class="box">
+
+    <h3>Relacionamento</h3>
+
+    <div id="relationModalContent"></div>
+
+    <br>
+
+    <button
+      id="relationModalDelete"
+      onclick="deleteRelationFromModal()"
+    >
+      Excluir Relacionamento
+    </button>
+
+    <button onclick="closeRelationModal()">
+      Fechar
     </button>
 
   </div>
@@ -503,6 +653,84 @@ function zoomOut(){
 
   applyZoom();
 }
+
+/* ==========================
+   PINCH ZOOM (TOQUE)
+========================== */
+
+let pinchStartDist = 0;
+let pinchStartZoom = 1;
+let pinchActive = false;
+
+function getPinchDist(e){
+
+  if(e.touches.length < 2)
+    return 0;
+
+  const dx =
+    e.touches[0].clientX -
+    e.touches[1].clientX;
+
+  const dy =
+    e.touches[0].clientY -
+    e.touches[1].clientY;
+
+  return Math.sqrt(dx*dx + dy*dy);
+}
+
+(function initPinch(){
+
+  const scroll =
+    document.getElementById("canvasScroll");
+
+  scroll.addEventListener("touchstart", e=>{
+
+    if(e.touches.length === 2){
+
+      pinchActive = true;
+
+      pinchStartDist =
+        getPinchDist(e);
+
+      pinchStartZoom = zoom;
+    }
+
+  }, {passive:false});
+
+  scroll.addEventListener("touchmove", e=>{
+
+    if(!pinchActive)
+      return;
+
+    e.preventDefault();
+
+    const dist = getPinchDist(e);
+
+    if(dist === 0)
+      return;
+
+    zoom = Math.max(
+      0.3,
+      Math.min(
+        3,
+        pinchStartZoom * dist / pinchStartDist
+      )
+    );
+
+    applyZoom();
+  }, {passive:false});
+
+  scroll.addEventListener("touchend", e=>{
+
+    if(e.touches.length < 2)
+      pinchActive = false;
+  });
+
+  scroll.addEventListener("touchcancel", ()=>{
+    pinchActive = false;
+  });
+
+})();
 
 /* ==========================
    MODAIS
@@ -997,15 +1225,13 @@ function deleteField(i){
 
   render();
   renderGrid();
-
-  document.getElementById(
-    "relationContent"
-  ).innerHTML="Selecione um campo";
 }
 
 /* ==========================
-   RELATION GRID
+   RELATION MODAL
 ========================== */
+
+let selectedRelation = null;
 
 function selectField(fieldId){
 
@@ -1013,70 +1239,87 @@ function selectField(fieldId){
 
   renderGrid();
 
-  const relDiv =
-    document.getElementById(
-      "relationContent"
-    );
-
   const rel =
     relations.find(r =>
       r.to == fieldId ||
       r.from == fieldId
     );
 
+  selectedRelation = rel || null;
+
+  const box =
+    document.getElementById(
+      "relationModalContent"
+    );
+
+  const delBtn =
+    document.getElementById(
+      "relationModalDelete"
+    );
+
   if(!rel){
 
-    relDiv.innerHTML = `
-      <h4>Relacionamento</h4>
-      Sem relacionamento
+    box.innerHTML =
+      "<p>Sem relacionamento</p>";
+
+    delBtn.style.display="none";
+
+  }else{
+
+    const fromField =
+      findField(rel.from);
+
+    const toField =
+      findField(rel.to);
+
+    const fromTable =
+      findTableByField(rel.from);
+
+    const toTable =
+      findTableByField(rel.to);
+
+    box.innerHTML = `
+
+      <b>Tabela FK</b><br>
+      ${toTable.name}.${toField.name}
+
+      <br><br>
+
+      <b>Tabela Referenciada</b><br>
+      ${fromTable.name}.${fromField.name}
+
+      <br><br>
+
+      <b>Cardinalidade</b><br>
+      ${rel.cardinality || "1:N"}
     `;
 
-    return;
+    delBtn.style.display="inline-block";
   }
 
-  const fromField =
-    findField(rel.from);
+  document.getElementById(
+    "relationModal"
+  ).style.display="flex";
+}
 
-  const toField =
-    findField(rel.to);
+function closeRelationModal(){
 
-  const fromTable =
-    findTableByField(rel.from);
+  document.getElementById(
+    "relationModal"
+  ).style.display="none";
+}
 
-  const toTable =
-    findTableByField(rel.to);
+function deleteRelationFromModal(){
 
-  relDiv.innerHTML = `
+  if(!selectedRelation)
+    return;
 
-    <h4>Relacionamento</h4>
+  deleteRelation(
+    selectedRelation.from,
+    selectedRelation.to
+  );
 
-    <b>Tabela FK</b><br>
-    ${toTable.name}.${toField.name}
-
-    <br><br>
-
-    <b>Tabela Referenciada</b><br>
-    ${fromTable.name}.${fromField.name}
-
-    <br><br>
-
-    <b>Cardinalidade</b><br>
-    ${rel.cardinality || "1:N"}
-
-    <br><br>
-
-    <button
-      onclick="
-        deleteRelation(
-          ${rel.from},
-          ${rel.to}
-        )
-      "
-    >
-      Excluir Relacionamento
-    </button>
-
-  `;
+  closeRelationModal();
 }
 
 function deleteRelation(from,to){
@@ -1094,11 +1337,6 @@ function deleteRelation(from,to){
 
   render();
   renderGrid();
-
-  document.getElementById(
-    "relationContent"
-  ).innerHTML =
-    "Relacionamento removido";
 }
 
 /* ==========================
@@ -1249,10 +1487,7 @@ function deleteTable(id){
   ).innerHTML =
     "Selecione uma tabela";
 
-  document.getElementById(
-    "relationContent"
-  ).innerHTML =
-    "Selecione um campo";
+  closeRelationModal();
 }
 
 /* ==========================
@@ -1432,12 +1667,6 @@ function importJSON(event){
         "gridContent"
       ).innerHTML =
       "Selecione uma tabela";
-
-    document
-      .getElementById(
-        "relationContent"
-      ).innerHTML =
-      "Selecione um campo";
   };
 
   reader.readAsText(file);
@@ -1832,6 +2061,111 @@ function findTableByField(fieldId){
 
   return null;
 }
+
+/* ==========================
+   DIVIDER REDIMENSIONÁVEL
+========================== */
+
+function makeSplitter(bar,resizeEl){
+
+  let dragging = false;
+  let startY = 0;
+  let startSize = 0;
+
+  function getY(e){
+    return e.touches
+      ? e.touches[0].clientY
+      : e.clientY;
+  }
+
+  function start(e){
+
+    dragging = true;
+
+    startY = getY(e);
+
+    startSize = resizeEl.offsetHeight;
+
+    bar.classList.add("active");
+
+    document.body.classList.add("dragging");
+
+    document.body.style.cursor="row-resize";
+
+    if(e.touches)
+      e.preventDefault();
+  }
+
+  function move(e){
+
+    if(!dragging)
+      return;
+
+    const canvas =
+      document.getElementById(
+        "canvasContainer"
+      );
+
+    const total =
+      canvas.offsetHeight +
+      resizeEl.offsetHeight;
+
+    let size =
+      startSize - (getY(e) - startY);
+
+    const MIN = 80;
+
+    size = Math.max(
+      MIN,
+      Math.min(size, total - MIN)
+    );
+
+    resizeEl.style.flex =
+      "0 0 "+size+"px";
+
+    if(e.touches)
+      e.preventDefault();
+  }
+
+  function end(){
+
+    dragging = false;
+
+    bar.classList.remove("active");
+
+    document.body.classList.remove("dragging");
+
+    document.body.style.cursor="";
+  }
+
+  bar.addEventListener("mousedown",start);
+
+  bar.addEventListener(
+    "touchstart",
+    start,
+    {passive:false}
+  );
+
+  document.addEventListener("mousemove",move);
+
+  document.addEventListener("mouseup",end);
+
+  document.addEventListener(
+    "touchmove",
+    move,
+    {passive:false}
+  );
+
+  document.addEventListener(
+    "touchend",
+    end
+  );
+}
+
+makeSplitter(
+  document.getElementById("splitterCanvas"),
+  document.getElementById("grid")
+);
 
 /* ==========================
    INIT
