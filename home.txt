@@ -8,5 +8,6 @@ Além disso, o ambiente valoriza o erro como parte essencial do processo de apre
 
 #RODAPÉ
 © 2026 Ambiente de Prática em Banco de Dados | Curso Técnico em Informática
+Desenvolvido por Maria Vitória e Ana Júlia
 Este ambiente foi desenvolvido com finalidade educacional, com o objetivo de apoiar a aprendizagem prática de comandos SQL e modelagem de banco de dados (MER).
 Utilize as ferramentas de forma responsável e aproveite este espaço para experimentar, aprender e evoluir continuamente.
