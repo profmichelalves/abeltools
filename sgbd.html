@@ -434,6 +434,14 @@ td.null{
   font-size:14px;
 }
 
+#result .success{
+  color:#00b894;
+  text-align:center;
+  padding:40px 0;
+  font-size:14px;
+  font-weight:600;
+}
+
 #result pre{
   color:var(--danger);
   background:rgba(255,107,107,.08);
@@ -727,13 +735,23 @@ function initEditorPinch(){
   });
 }
 
+function novoDatabase(data){
+
+let db=new SQL.Database(data)
+
+db.exec("PRAGMA foreign_keys = ON")
+
+return db
+
+}
+
 async function iniciar(){
 
 SQL = await initSqlJs({
 locateFile:file=>"https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/"+file
 })
 
-dbs["main"] = new SQL.Database()
+dbs["main"] = novoDatabase()
 
 editor = CodeMirror.fromTextArea(
 document.getElementById("editor"),
@@ -776,7 +794,7 @@ return
 
 }
 
-dbs[nome]=new SQL.Database()
+dbs[nome]=novoDatabase()
 
 ativo=nome
 
@@ -821,6 +839,150 @@ document.getElementById("result").innerHTML=""
 
 }
 
+/* INSTRUÇÕES */
+
+function dividirSQL(sql){
+
+let partes=[]
+let atual=""
+let conteudo=false
+let aspas=null
+let linhaComentario=false
+let blocoComentario=false
+
+for(let i=0;i<sql.length;i++){
+
+let c=sql[i]
+let prox=sql[i+1]
+
+if(linhaComentario){
+
+atual+=c
+
+if(c==="\n")
+linhaComentario=false
+
+continue
+
+}
+
+if(blocoComentario){
+
+atual+=c
+
+if(c==="*"&&prox==="/"){
+
+atual+=prox
+i++
+blocoComentario=false
+
+}
+
+continue
+
+}
+
+if(aspas){
+
+atual+=c
+conteudo=true
+
+if(c===aspas){
+
+if(prox===aspas){
+
+atual+=prox
+i++
+
+}else{
+
+aspas=null
+
+}
+
+}
+
+continue
+
+}
+
+if(c==="-"&&prox==="-"){
+
+linhaComentario=true
+atual+=c
+continue
+
+}
+
+if(c==="/"&&prox==="*"){
+
+blocoComentario=true
+atual+=c
+continue
+
+}
+
+if(c==="'"||c==='"'||c==="`"){
+
+aspas=c
+atual+=c
+conteudo=true
+continue
+
+}
+
+if(c===";"){
+
+if(conteudo)
+partes.push(atual)
+
+atual=""
+conteudo=false
+continue
+
+}
+
+atual+=c
+
+if(!/\s/.test(c))
+conteudo=true
+
+}
+
+if(conteudo)
+partes.push(atual)
+
+return partes.map(p=>p.trim())
+
+}
+
+function isConsulta(sql){
+
+let partes=dividirSQL(sql)
+
+if(!partes.length)
+return false
+
+let ultima=partes[partes.length-1]
+
+ultima=ultima.replace(/^(?:\s|--[^\n]*(?:\n|$)|\/\*[\s\S]*?\*\/)+/,"")
+
+return /^(select|pragma|with|explain|values)\b/i.test(ultima)
+
+}
+
+function isModificacao(sql){
+
+return dividirSQL(sql).some(p=>{
+
+p=p.replace(/^(?:\s|--[^\n]*(?:\n|$)|\/\*[\s\S]*?\*\/)+/,"")
+
+return /^(insert|update|delete|replace)\b/i.test(p)
+
+})
+
+}
+
 /* EXECUTAR SQL */
 
 function executarSQL(){
@@ -831,7 +993,7 @@ try{
 
 let res=dbs[ativo].exec(sql)
 
-mostrarResultado(res)
+mostrarResultado(res, sql)
 
 atualizarArvore()
 
@@ -845,11 +1007,28 @@ document.getElementById("result").innerHTML="<pre style='color:red'>"+e+"</pre>"
 
 /* RESULTADO */
 
-function mostrarResultado(res){
+function mostrarResultado(res, sql){
 
 if(!res.length){
 
+if(isConsulta(sql)){
+
 document.getElementById("result").innerHTML="<div class='empty'>Sem resultado</div>"
+return
+
+}
+
+let afetadas=0
+
+if(isModificacao(sql))
+afetadas=dbs[ativo].getRowsModified()
+
+let msg="Script executado com sucesso."
+
+if(afetadas>0)
+msg+=" "+afetadas+" linha(s) afetada(s)."
+
+document.getElementById("result").innerHTML="<div class='success'>"+msg+"</div>"
 return
 
 }
@@ -1020,7 +1199,7 @@ let nome=file.name.replace(/\.db$/i,"")
 
 if(dbs[nome])nome+="_"+Date.now()
 
-dbs[nome]=new SQL.Database(arr)
+dbs[nome]=novoDatabase(arr)
 
 ativo=nome
 
