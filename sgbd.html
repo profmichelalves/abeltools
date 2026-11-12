@@ -239,6 +239,17 @@ button.success:hover{
   filter:brightness(1.1);
 }
 
+button.danger{
+  color:var(--danger);
+  border-color:rgba(255,107,107,.4);
+}
+
+button.danger:hover{
+  background:rgba(255,107,107,.12);
+  border-color:var(--danger);
+  color:var(--danger);
+}
+
 #toolbar select{
   background:var(--surface-2);
   border:1px solid var(--border);
@@ -581,7 +592,7 @@ html.light .column{
   color:#57606a;
 }
 
-html.light button:not(.primary):not(.success):hover{
+html.light button:not(.primary):not(.success):not(.danger):hover{
   color:var(--text);
 }
 
@@ -639,9 +650,10 @@ document.documentElement.classList.add("light")
 
     <button class="primary" onclick="abrirModal()">＋ Novo Banco</button>
     <button onclick="abrirBanco()">📂 Abrir</button>
-    <button onclick="salvarBanco()">💾 Salvar</button>
+    <button onclick="salvarBanco()">💾 Baixar .db</button>
     <select id="dbSelect" onchange="mudarBanco()" title="Banco ativo"></select>
     <button class="success" onclick="executarSQL()">▶ Executar</button>
+    <button class="danger" onclick="excluirBanco()">🗑 Excluir</button>
 
     <input type="file" id="fileInput" style="display:none"/>
 
@@ -851,13 +863,210 @@ return db
 
 }
 
+const IDB_NOME="abeltools-sgbd"
+const IDB_STORE="bancos"
+const IDB_VERSAO=1
+
+let idbConexao=null
+
+function abrirArmazenamento(){
+
+if(idbConexao)
+return idbConexao
+
+idbConexao=new Promise((resolve,reject)=>{
+
+if(typeof indexedDB==="undefined"){
+
+reject(new Error("IndexedDB indisponível"))
+return
+
+}
+
+let req=indexedDB.open(IDB_NOME,IDB_VERSAO)
+
+req.onupgradeneeded=()=>{
+
+let db=req.result
+
+if(!db.objectStoreNames.contains(IDB_STORE))
+db.createObjectStore(IDB_STORE,{keyPath:"nome"})
+
+}
+
+req.onsuccess=()=>resolve(req.result)
+
+req.onerror=()=>reject(req.error)
+
+req.onblocked=()=>reject(new Error("IndexedDB bloqueado"))
+
+})
+
+return idbConexao
+
+}
+
+async function salvarBancoLocal(nome){
+
+if(!dbs[nome])
+return
+
+try{
+
+let db=await abrirArmazenamento()
+
+if(!dbs[nome])
+return
+
+let dados=dbs[nome].export()
+
+dbs[nome].exec("PRAGMA foreign_keys = ON")
+
+await new Promise((resolve,reject)=>{
+
+let tx=db.transaction(IDB_STORE,"readwrite")
+
+tx.objectStore(IDB_STORE).put({
+nome:nome,
+dados:dados,
+atualizadoEm:Date.now()
+})
+
+tx.oncomplete=resolve
+
+tx.onerror=()=>reject(tx.error)
+
+tx.onabort=()=>reject(tx.error)
+
+})
+
+}catch(e){
+
+console.warn("Falha ao salvar '"+nome+"' localmente:",e)
+
+}
+
+}
+
+async function carregarBancosLocais(){
+
+let nomes=[]
+
+try{
+
+let db=await abrirArmazenamento()
+
+let registros=await new Promise((resolve,reject)=>{
+
+let tx=db.transaction(IDB_STORE,"readonly")
+
+let req=tx.objectStore(IDB_STORE).getAll()
+
+req.onsuccess=()=>resolve(req.result||[])
+
+req.onerror=()=>reject(req.error)
+
+})
+
+registros.forEach(rec=>{
+
+try{
+
+dbs[rec.nome]=novoDatabase(new Uint8Array(rec.dados))
+
+nomes.push(rec.nome)
+
+}catch(e){
+
+console.warn("Banco '"+rec.nome+"' inválido, ignorado:",e)
+
+}
+
+})
+
+}catch(e){
+
+console.warn("Não foi possível carregar os bancos locais:",e)
+
+}
+
+return nomes
+
+}
+
+async function excluirBancoLocal(nome){
+
+try{
+
+let db=await abrirArmazenamento()
+
+await new Promise((resolve,reject)=>{
+
+let tx=db.transaction(IDB_STORE,"readwrite")
+
+tx.objectStore(IDB_STORE).delete(nome)
+
+tx.oncomplete=resolve
+
+tx.onerror=()=>reject(tx.error)
+
+tx.onabort=()=>reject(tx.error)
+
+})
+
+}catch(e){
+
+console.warn("Falha ao excluir '"+nome+"' localmente:",e)
+
+}
+
+}
+
+function persistirAtivo(){
+
+try{
+localStorage.setItem("abeltools-sgbd-ativo",ativo)
+}catch(e){}
+
+}
+
+async function restaurarBancos(){
+
+let nomes=await carregarBancosLocais()
+
+if(!nomes.length){
+
+dbs["main"]=novoDatabase()
+
+ativo="main"
+
+persistirAtivo()
+
+salvarBancoLocal("main")
+
+return
+
+}
+
+let salvo=null
+
+try{
+salvo=localStorage.getItem("abeltools-sgbd-ativo")
+}catch(e){}
+
+ativo=nomes.includes(salvo)?salvo:nomes[0]
+
+persistirAtivo()
+
+}
+
 async function iniciar(){
 
 SQL = await initSqlJs({
 locateFile:file=>"https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/"+file
 })
 
-dbs["main"] = novoDatabase()
+await restaurarBancos()
 
 editor = CodeMirror.fromTextArea(
 document.getElementById("editor"),
@@ -904,6 +1113,10 @@ dbs[nome]=novoDatabase()
 
 ativo=nome
 
+persistirAtivo()
+
+salvarBancoLocal(nome)
+
 document.getElementById("dbName").value=""
 
 fecharModal()
@@ -940,6 +1153,8 @@ sel.appendChild(opt)
 function mudarBanco(){
 
 ativo=document.getElementById("dbSelect").value
+
+persistirAtivo()
 
 document.getElementById("result").innerHTML=""
 
@@ -1083,7 +1298,22 @@ return dividirSQL(sql).some(p=>{
 
 p=p.replace(/^(?:\s|--[^\n]*(?:\n|$)|\/\*[\s\S]*?\*\/)+/,"")
 
-return /^(insert|update|delete|replace)\b/i.test(p)
+if(/^(insert|update|delete|replace)\b/i.test(p))
+return true
+
+return /^with\b/i.test(p)&&/\b(insert|update|delete|replace)\b/i.test(p)
+
+})
+
+}
+
+function isEsquema(sql){
+
+return dividirSQL(sql).some(p=>{
+
+p=p.replace(/^(?:\s|--[^\n]*(?:\n|$)|\/\*[\s\S]*?\*\/)+/,"")
+
+return /^(create|drop|alter|vacuum|reindex|attach|detach)\b/i.test(p)
 
 })
 
@@ -1102,6 +1332,9 @@ let res=dbs[ativo].exec(sql)
 mostrarResultado(res, sql)
 
 atualizarArvore()
+
+if(!isConsulta(sql)||isModificacao(sql)||isEsquema(sql))
+salvarBancoLocal(ativo)
 
 }catch(e){
 
@@ -1269,6 +1502,8 @@ function salvarBanco(){
 
 let data=dbs[ativo].export()
 
+dbs[ativo].exec("PRAGMA foreign_keys = ON")
+
 let blob=new Blob([data])
 
 let url=URL.createObjectURL(blob)
@@ -1279,6 +1514,40 @@ a.href=url
 a.download=ativo+".db"
 
 a.click()
+
+}
+
+async function excluirBanco(){
+
+if(!dbs[ativo])
+return
+
+if(!confirm("Excluir o banco '"+ativo+"'? Esta ação não pode ser desfeita."))
+return
+
+let nome=ativo
+
+delete dbs[nome]
+
+await excluirBancoLocal(nome)
+
+if(!Object.keys(dbs).length){
+
+dbs["main"]=novoDatabase()
+
+salvarBancoLocal("main")
+
+}
+
+ativo=Object.keys(dbs)[0]
+
+persistirAtivo()
+
+document.getElementById("result").innerHTML=""
+
+atualizarSelect()
+
+atualizarArvore()
 
 }
 
@@ -1308,6 +1577,10 @@ if(dbs[nome])nome+="_"+Date.now()
 dbs[nome]=novoDatabase(arr)
 
 ativo=nome
+
+persistirAtivo()
+
+salvarBancoLocal(nome)
 
 atualizarSelect()
 
@@ -1442,6 +1715,20 @@ return main.clientHeight-toolbar.offsetHeight-bar.offsetHeight
 }
 
 )
+
+window.addEventListener("beforeunload",()=>{
+
+if(dbs[ativo])
+salvarBancoLocal(ativo)
+
+})
+
+document.addEventListener("visibilitychange",()=>{
+
+if(document.visibilityState==="hidden"&&dbs[ativo])
+salvarBancoLocal(ativo)
+
+})
 
 iniciarTema()
 
